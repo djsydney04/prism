@@ -7,7 +7,7 @@ version = "0.2.1"
 edition = "2021"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/djsydney04/rust_sdks"
+repository = "https://github.com/djsydney04/prism"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

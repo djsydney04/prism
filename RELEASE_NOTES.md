@@ -1,17 +1,19 @@
-Prism v0.2.0 introduces the new name for these independent unofficial Rust AI SDKs:
-`prism-openai`, `prism-gemini`, `prism-groq`, and `prism-ai-core`.
+# Prism Rust AI SDKs
 
-Common APIs have extensible Rust types, and advanced REST APIs support generic
-resource handles. Includes SSE and WebSocket streaming, uploads, structured errors,
-OpenAI webhook verification, mock contract tests, opt-in live tests, examples, and
-provider coverage guides. Requires Rust 1.88+ and Tokio.
+Independent, unofficial async Rust crates for OpenAI, Google's Gemini Developer
+API, and Groq: `prism-openai`, `prism-gemini`, `prism-groq`, and the shared
+`prism-ai-core`. Install provider crates from crates.io with the normal version
+dependencies in [README](README.md). Requires Rust 1.88+ and Tokio.
 
-Install from this Git tag using the examples in README. A GitHub release is
-separate from crates.io publication; do not assume registry availability.
+Common generation APIs expose extensible typed requests and responses; advanced
+REST APIs use authenticated generic resource handles. Shared capabilities include
+SSE streaming, multipart uploads, structured errors, bounded responses, and
+credential redaction. OpenAI Responses/Realtime/Live and Gemini Live support
+WebSocket sessions. OpenAI webhook verification authenticates raw payloads and
+checks timestamps; applications handle delivery deduplication and tool execution.
 
-Migrate from v0.1.0 by changing Cargo package names from `sydney-*` to `prism-*`
-and Rust imports from `sydney_*` to `prism_*`. The SDK operations are unchanged.
-
-No live provider account was used for verification. API permissions, model
-availability, and beta behavior remain provider-controlled. See docs/openai.md,
-docs/gemini.md, and docs/groq.md for exact coverage and limitations.
+Mock contract tests and CI verify local protocol behavior. Runnable examples and
+opt-in live tests support checking a configured provider account. Live service
+availability, account permissions, model capabilities, and beta behavior remain
+provider-controlled. See the [OpenAI](docs/openai.md), [Gemini](docs/gemini.md),
+and [Groq](docs/groq.md) coverage guides for supported methods and limitations.

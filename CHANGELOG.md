@@ -1,11 +1,11 @@
 # Changelog
 
-## [0.2.1](https://github.com/djsydney04/rust_sdks/compare/v0.2.0...v0.2.1) (2026-10-16)
+## [0.2.1](https://github.com/djsydney04/prism/compare/v0.2.0...v0.2.1) (2026-10-16)
 
 
 ### Bug Fixes
 
-* **ci:** automate synchronized releases and crate publication with Release Please ([b7d0aa4](https://github.com/djsydney04/rust_sdks/commit/b7d0aa47ad5470dd47779d5cd2b4e2a8ece626f2))
+* **ci:** automate synchronized releases and crate publication with Release Please ([b7d0aa4](https://github.com/djsydney04/prism/commit/b7d0aa47ad5470dd47779d5cd2b4e2a8ece626f2))
 
 ## 0.2.0 — 2026-10-15
 

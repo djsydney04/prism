@@ -211,7 +211,7 @@ async fn main() -> prism_gemini::Result<()> {
 
 ## Coverage and validation
 
-The [coverage matrix](https://github.com/djsydney04/rust_sdks/blob/main/docs/gemini.md) lists named methods and limitations. This release targets the Gemini Developer API. Vertex AI, realtime music helpers, OAuth acquisition/refresh, automatic pagination, and webhook signature verification are not implemented.
+The [coverage matrix](https://github.com/djsydney04/prism/blob/main/docs/gemini.md) lists named methods and limitations. This release targets the Gemini Developer API. Vertex AI, realtime music helpers, OAuth acquisition/refresh, automatic pagination, and webhook signature verification are not implemented.
 
 Offline contract tests exercise authentication, body encoding, API errors, SSE, query parameters, pagination metadata, binary upload/download, foreign-origin rejection, resource validation, named resource routes, Live and ephemeral-token handshakes, initial setup and multimodal messages. They require no credentials and incur no API charges. Passing mocks does not establish live account access, model availability, quotas, or feature-specific schema compatibility.
 

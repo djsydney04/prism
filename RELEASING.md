@@ -9,7 +9,7 @@ and publishes all four crates. Local `cargo login` is not required.
 Create a crates.io API token with permission to publish the four Prism crates,
 including permission to create them for their first publication. Add it as the
 repository Actions secret named **`CARGO_REGISTRY_TOKEN`** using
-[New repository secret](https://github.com/djsydney04/rust_sdks/settings/secrets/actions/new).
+[New repository secret](https://github.com/djsydney04/prism/settings/secrets/actions/new).
 Never commit the token or put it in a workflow input, issue, or chat.
 
 The publishing job uses the `crates-io` GitHub environment. Its approval rules
@@ -30,7 +30,7 @@ These permissions do not make the workflow approve its own release PRs.
 
 After adding the secret:
 
-1. Open [Publish crates](https://github.com/djsydney04/rust_sdks/actions/workflows/publish.yml).
+1. Open [Publish crates](https://github.com/djsydney04/prism/actions/workflows/publish.yml).
 2. Choose **Run workflow**, select the **main** branch, and enter version **0.2.0**
    without the `v` prefix.
 3. Approve the `crates-io` environment deployment if its protection rules require it.

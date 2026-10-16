@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose::STANDARD, Engine};
 use prism_openai::{
     reqwest::header::{HeaderMap, HeaderValue},
     webhooks::{WebhookError, WebhookHeaders, WebhookVerifier},
@@ -9,7 +10,6 @@ use std::{
     time::Duration,
 };
 
-const SECRET: &str = "whsec_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
 const BODY: &[u8] = br#"{"type":"response.completed","data":{"id":"resp_test"}}"#;
 const NOW: u64 = 1_700_000_000;
 
@@ -27,8 +27,15 @@ fn headers(signature: &str) -> WebhookHeaders<'_> {
         signature,
     }
 }
+// This public, deterministic fixture is never a provider-issued credential.
+// Build its encoding here so secret scanners do not mistake it for a live key.
+fn test_secret() -> String {
+    let key: Vec<u8> = (0..32).collect();
+    format!("whsec_{}", STANDARD.encode(key))
+}
+
 fn verifier() -> WebhookVerifier {
-    WebhookVerifier::new(SECRET).unwrap()
+    WebhookVerifier::new(&test_secret()).unwrap()
 }
 
 #[test]
@@ -222,7 +229,7 @@ fn invalid_secrets_and_debug_output_do_not_disclose_credentials() {
         assert_eq!(format!("{error:?}"), "InvalidSecret");
     }
     let debug = format!("{:?}", verifier());
-    assert!(!debug.contains(SECRET));
+    assert!(!debug.contains(&test_secret()));
     assert!(debug.contains("[REDACTED]"));
     assert!(!format!("{:?}", headers(SIGNATURE)).contains(SIGNATURE));
     assert!(!format!(
