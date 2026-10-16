@@ -777,7 +777,7 @@ dependencies = [
 
 [[package]]
 name = "prism-ai-core"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-stream",
  "futures-core",
@@ -796,7 +796,7 @@ dependencies = [
 
 [[package]]
 name = "prism-gemini"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "futures-util",
  "prism-ai-core",
@@ -809,7 +809,7 @@ dependencies = [
 
 [[package]]
 name = "prism-groq"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "futures-util",
  "prism-ai-core",
@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "prism-openai"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "base64 0.22.1",
  "futures-util",

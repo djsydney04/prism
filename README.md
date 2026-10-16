@@ -22,9 +22,9 @@ Add the crates you need from crates.io:
 
 ```toml
 [dependencies]
-prism-openai = "0.2.1" # x-release-please-version
-prism-gemini = "0.2.1" # x-release-please-version
-prism-groq = "0.2.1" # x-release-please-version
+prism-openai = "0.2.2" # x-release-please-version
+prism-gemini = "0.2.2" # x-release-please-version
+prism-groq = "0.2.2" # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 

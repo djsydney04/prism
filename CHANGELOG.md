@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/djsydney04/prism/compare/v0.2.1...v0.2.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* use Prism repository metadata and explicit synthetic webhook fixtures ([7052731](https://github.com/djsydney04/prism/commit/7052731a5e4a8378143e56c5c7616a4d3401ac3a))
+
 ## [0.2.1](https://github.com/djsydney04/prism/compare/v0.2.0...v0.2.1) (2026-10-16)
 
 

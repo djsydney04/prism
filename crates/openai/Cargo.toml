@@ -14,7 +14,7 @@ categories = ["api-bindings", "asynchronous"]
 base64 = "0.22"
 hmac = "0.12"
 sha2 = "0.10"
-prism-ai-core = { path = "../core", version = "0.2.1" }
+prism-ai-core = { path = "../core", version = "0.2.2" }
 serde.workspace = true
 serde_json.workspace = true
 

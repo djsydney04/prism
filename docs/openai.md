@@ -3,7 +3,7 @@
 The `prism-openai` crate is an independent implementation based on the
 [official OpenAI HTTP API reference](https://developers.openai.com/api/reference/overview).
 The reference was reviewed on 2026-10-15. No third-party SDK code was imported.
-Package version is `0.2.1` and minimum supported Rust is 1.88. <!-- x-release-please-version -->
+Package version is `0.2.2` and minimum supported Rust is 1.88. <!-- x-release-please-version -->
 
 “Typed” below means a named request/response Rust type and an ergonomic method.
 “Resource” means an authenticated HTTP endpoint handle accepting any serializable
