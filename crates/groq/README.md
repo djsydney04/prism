@@ -3,15 +3,16 @@
 Independent, unofficial async Rust SDK for the Groq REST API. No third-party
 Groq SDK is wrapped or copied. Not affiliated with Groq.
 
+## Install
+
 ```toml
 [dependencies]
-prism-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
+prism-groq = "0.2.1" # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
 ```
 
-After registry publication, you can use `prism-groq = "0.2.1"` instead. <!-- x-release-please-version -->
-The versioned Git dependency works independently of crates.io publication.
+Import the crate in Rust as `prism_groq`.
 
 Set `GROQ_API_KEY` in your environment. Never embed it in source control.
 

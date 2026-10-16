@@ -18,19 +18,18 @@ send/receive, JSON and binary frames, and configurable message limits.
 
 ## Install
 
-Versioned Git dependencies work without a crates.io release:
+Add the crates you need from crates.io:
 
 ```toml
 [dependencies]
-prism-openai = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
-prism-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
-prism-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
+prism-openai = "0.2.1" # x-release-please-version
+prism-gemini = "0.2.1" # x-release-please-version
+prism-groq = "0.2.1" # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-The registry package manifests also support normal version dependencies once
-published to crates.io. GitHub tags/releases and registry publication are separate
-steps; see [release instructions](RELEASING.md).
+Registry publication runs through GitHub Actions; see
+[release instructions](RELEASING.md).
 
 ## Use
 

@@ -2,16 +2,17 @@
 
 Independent, unofficial asynchronous Rust bindings for Google's Gemini Developer API. Built from the official REST reference, with no dependency on another provider SDK. This crate is not affiliated with Google.
 
+## Install
+
 ```toml
 [dependencies]
-prism-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
+prism-gemini = "0.2.1" # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 # Add this for streaming examples:
 futures-util = "0.3"
 ```
 
-After registry publication, you can use `prism-gemini = "0.2.1"` instead. <!-- x-release-please-version -->
-The versioned Git dependency works independently of crates.io publication.
+Import the crate in Rust as `prism_gemini`.
 
 Set `GEMINI_API_KEY`, then:
 
