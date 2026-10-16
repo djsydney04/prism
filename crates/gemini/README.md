@@ -6,7 +6,7 @@ Independent, unofficial asynchronous Rust bindings for Google's Gemini Developer
 
 ```toml
 [dependencies]
-prism-gemini = "0.2.1" # x-release-please-version
+prism-gemini = "0.2.2" # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 # Add this for streaming examples:
 futures-util = "0.3"
