@@ -33,10 +33,15 @@ cargo publish -p sydney-gemini --locked
 cargo publish -p sydney-groq --locked
 ```
 
-`cargo package` for an unpublished SDK dependency cannot resolve core from the
-registry until core is published. The release workflow uses a temporary local
-registry patch only to verify downstream source packages before publication.
-It does not modify the published manifests or advertise a registry release.
+Use `cargo package --workspace --locked` on current stable Cargo to package and
+verify the workspace together before its dependencies are published. Cargo uses
+the packaged sibling crates during this verification. Individual `cargo publish`
+operations still require publishing core first so registry clients can resolve it.
+
+Prefer `python3 scripts/verify-packages.py` when verifying repeatedly. It assigns
+each run a fresh temporary target directory, avoiding Cargo's local-registry cache
+of an earlier unpublished core with the same version. It saves the four verified
+archives and `SHA256SUMS` to `target/package/`. CI uses this wrapper too.
 
 Treat published versions as immutable. Breaking changes during 0.x require a new
 minor version; compatible fixes use a patch version. Never force-move release tags.

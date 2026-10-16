@@ -9,7 +9,7 @@ pub enum Error {
     #[error("invalid configuration: {0}")]
     Config(String),
     #[error("HTTP transport failed: {0}")]
-    Transport(#[from] reqwest::Error),
+    Transport(#[source] reqwest::Error),
     #[error("JSON serialization failed: {0}")]
     Serialization(#[from] serde_json::Error),
     #[error("API error ({status}): {message}")]
@@ -21,6 +21,13 @@ pub enum Error {
     },
     #[error("protocol error: {0}")]
     Protocol(String),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        // Resumable upload URLs and signed downloads can contain bearer secrets.
+        Self::Transport(error.without_url())
+    }
 }
 
 impl Error {

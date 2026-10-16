@@ -11,6 +11,9 @@ keywords = ["openai", "sdk", "ai", "async", "api"]
 categories = ["api-bindings", "asynchronous"]
 
 [dependencies]
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
 sydney-ai-core = { path = "../core", version = "0.1.0" }
 serde.workspace = true
 serde_json.workspace = true
@@ -19,3 +22,4 @@ serde_json.workspace = true
 futures-util.workspace = true
 tokio.workspace = true
 wiremock.workspace = true
+tokio-tungstenite.workspace = true

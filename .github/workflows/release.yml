@@ -1,0 +1,24 @@
+name: Release
+on:
+  push:
+    tags: ['v[0-9]*']
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: rustup update stable --profile minimal
+      - run: rustup default stable
+      - run: python3 scripts/release.py check --tag "$GITHUB_REF_NAME"
+      - run: python3 scripts/verify-packages.py
+      - name: Publish GitHub release and crate archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" target/package/*.crate target/package/SHA256SUMS --verify-tag --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md

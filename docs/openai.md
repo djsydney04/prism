@@ -14,7 +14,7 @@ been exercised against a live OpenAI account.
 
 | API surface | Access and supported operations | Schema level |
 | --- | --- | --- |
-| [Responses](https://developers.openai.com/api/reference/typescript/resources/responses) | `responses()`: create, retrieve, delete, cancel, compact, input items, input token counts, create/retrieve SSE | Typed common create/result; JSON for full unions and advanced requests |
+| [Responses](https://developers.openai.com/api/reference/typescript/resources/responses) | `responses()`: create, retrieve, delete, cancel, compact, input items, input token counts, create/retrieve SSE, persistent WebSocket `connect()` | Typed common create/result; JSON for full unions, advanced requests, and WebSocket events |
 | [Chat completions](https://developers.openai.com/api/reference/typescript/resources/chat) | `chat()`: create, retrieve, update, delete, list, messages, SSE including usage and tool deltas | Typed common request, messages, results and chunks; JSON extensions |
 | [Conversations](https://developers.openai.com/api/reference/typescript/resources/conversations) | `conversations()`: CRUD; nested items CRUD/list with `child` | Resource |
 | [Embeddings](https://developers.openai.com/api/reference/typescript/resources/embeddings) | `embeddings().create`: text and token input; float/base64 output; dimensions via field | Typed |
@@ -29,16 +29,16 @@ been exercised against a live OpenAI account.
 | [Evals](https://developers.openai.com/api/reference/typescript/resources/evals) | `evals()`: CRUD/list, runs create/retrieve/list/delete/cancel, output item list/retrieve | Resource |
 | [Containers](https://developers.openai.com/api/reference/typescript/resources/containers) | `containers()`: create/retrieve/list/delete, nested files upload/retrieve/list/delete and bytes | Resource + `http().bytes` for content |
 | [Moderation](https://developers.openai.com/api/reference/typescript/resources/moderations) | `moderations().create`: text and multimodal inputs, open category maps | Typed common request/result |
-| [Realtime](https://developers.openai.com/api/reference/typescript/resources/realtime) | `realtime()`: client secrets, translation client secrets, calls multipart/raw SDP, accept/hangup/refer/reject, legacy session REST | Resource + raw/multipart for negotiation |
-| [Live](https://developers.openai.com/api/reference/typescript/resources/live) | `live().child("sessions")`: create, accept, fork, hangup, refer, reject; recording bytes | Resource + raw bytes |
-| [Agents](https://developers.openai.com/api/reference/resources/beta/subresources/agents/methods/create) | `agents()`: CRUD/list; nested environments, templates, sessions, artifacts, events, items, turns, traces, subagents, vaults, credentials | Resource; optional beta headers configured by caller |
+| [Realtime](https://developers.openai.com/api/reference/typescript/resources/realtime) | `realtime()`: client secrets, translation client secrets, calls multipart/raw SDP, accept/hangup/refer/reject, legacy session REST; `realtime_connect(model)` for WebSocket JSON I/O | Resource + raw/multipart for negotiation; WebSocket session for events |
+| [Live](https://developers.openai.com/api/reference/typescript/resources/live) | `live().child("sessions")`: create, accept, fork, hangup, refer, reject; recording bytes; `live_connect(&[])` primary WebSocket | Resource + raw bytes; WebSocket session for events |
+| [Agents](https://developers.openai.com/api/reference/resources/beta/subresources/agents/methods/create) | `agents()`: CRUD/list; nested environments, templates, sessions, artifacts, events, items, turns, traces, subagents; `vaults()` for vaults and nested credentials | Resource; optional beta headers configured by caller |
 | [Skills](https://developers.openai.com/api/reference/typescript/resources/skills) | `skills()`: multipart create, CRUD/list/content, versions create/retrieve/delete/list/content | Resource + multipart/bytes |
-| [Webhooks](https://developers.openai.com/api/reference/typescript/resources/webhooks) | `webhooks()` maps to `webhook_endpoints`: CRUD/list, rotate secret, test; `webhook_event_types()` lists event kinds | Resource; incoming signature verification not implemented |
+| [Webhooks](https://developers.openai.com/api/reference/typescript/resources/webhooks) | `webhooks()` maps to `webhook_endpoints`: CRUD/list, rotate secret, test; `webhook_event_types()` lists event kinds; `webhooks::WebhookVerifier` verifies raw incoming bodies | Resource administration; local HMAC verification and timestamp window |
 | [Decisions](https://developers.openai.com/api/reference/typescript/resources/decisions) | `decisions().create` | Resource |
 | [Safety](https://developers.openai.com/api/reference/typescript/resources/safety) | `safety()`: alerts and cases retrieval | Resource |
 | [Content provenance](https://developers.openai.com/api/reference/typescript/resources/content_provenance_checks) | `content_provenance_checks().create` | Resource |
-| [Video](https://developers.openai.com/api/reference/typescript/resources/videos) | `videos()`: multipart create, retrieve/list/delete, remix; raw content download | Resource |
-| [ChatKit](https://developers.openai.com/api/reference/typescript/resources/beta/chatkit) | `chatkit()`: sessions create/cancel, threads retrieve/list/delete, items list | Resource |
+| [Video](https://developers.openai.com/api/reference/typescript/resources/videos) | `videos()`: multipart create, retrieve/list/delete, remix, edits, extensions, character create/retrieve; raw content download | Resource |
+| [ChatKit](https://developers.openai.com/api/reference/resources/beta/subresources/chatkit/subresources/sessions/methods/create) | `chatkit()`: sessions create/cancel, threads retrieve/list/delete, items list | Resource |
 | [Administration](https://developers.openai.com/api/reference/administration) | `organization()`: admin keys, audit logs, users/invites, groups/roles, projects and nested keys/certificates/retention/groups/permissions/rate limits/service accounts/spend limits/users, usage/costs | Resource; requires an appropriate Admin API key |
 | Legacy HTTP APIs | `completions()`, `assistants()`, `threads()`, or `resource(path)` | Resource; provider availability and beta headers remain caller responsibilities |
 
@@ -70,14 +70,32 @@ body; response headers (including Location), status, and body remain accessible.
 Multipart uploads use `reqwest::multipart::Form`, re-exported by the crate. JSON
 decoders accept empty successful responses as null for endpoints returning 204.
 
+## WebSocket protocol
+
+[`responses().connect()`](https://developers.openai.com/api/docs/guides/websocket-mode)
+uses `/v1/responses`. Send a `response.create` JSON event and handle the documented
+response events, including completion and errors. HTTP-only `stream` and
+`background` fields are omitted. JSON preserves `stream_id` for multiplexed lanes;
+callers route interleaved events themselves.
+
+[`realtime_connect(model)`](https://developers.openai.com/api/docs/guides/voice-websockets)
+uses `/v1/realtime` with an encoded model query and configured header credentials.
+[`live_connect(&[])`](https://developers.openai.com/api/reference/resources/live/primary-websocket)
+uses `/v1/live/sessions` without query parameters; send `session.start` and wait
+for `session.started` before audio. `websocket(path, query)` supports documented
+sideband/fork paths. `send_json`/`recv_json` preserve arbitrary event fields;
+`split()` supports independent sender and receiver tasks. Raw messages remain
+accessible when applications need binary data or lower-level frame handling.
+
 ## Explicit boundaries
 
-- This release supplies REST and SSE transports. It does not implement a
-  WebSocket client, WebRTC peer connection, SIP media engine, audio device loop,
-  or automatic tool execution. Realtime and Live media events require a separate
-  connection using the provider's documented protocol.
-- Incoming webhook signature verification and replay protection are not
-  implemented. Webhook administration is available through REST resources.
+- This release supplies REST, SSE, and WebSocket transports. It does not
+  implement a WebRTC peer connection, SIP media engine, audio device loop,
+  automatic tool execution, or automatic model-event orchestration. Applications
+  handle protocol events, audio encoding/playback, and reconnect policy.
+- Incoming webhook verification checks HMAC signatures and a configurable
+  timestamp window. Applications must deduplicate verified delivery IDs in
+  durable storage to prevent repeat processing within that window.
 - Resources accept any documented schema; advanced schemas do not have a
   distinct Rust type for every union member. Public request extension maps and
   `create_json`/`Resource` methods preserve new parameters without SDK changes.
@@ -98,6 +116,11 @@ image requests, multipart file/audio uploads, non-JSON speech/transcription
 formats, multipart SSE, dynamic-ID encoding, advanced resource nesting, admin
 headers, provider error details, and raw SDP responses. Unit tests also verify
 text extraction and malformed pagination detection.
+
+Local WebSocket mock servers verify header authentication, the Responses socket
+route and multiplexed event data, escaped Realtime model queries and tool events,
+Live `session.start` exchange, generic sideband queries, and split sender/receiver
+I/O. These tests require no provider credentials or Internet access.
 
 No live credentialed test results are claimed by this matrix. Mock tests do not
 prove provider-side schema acceptance or access to beta/organization endpoints.

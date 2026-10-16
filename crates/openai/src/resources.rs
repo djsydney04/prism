@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use sydney_ai_core::{
     reqwest::multipart::{Form, Part},
-    Client, Error, EventStream, Method, Resource, Result,
+    Client, Error, EventStream, Method, Resource, Result, WebSocketSession,
 };
 
 use crate::types::*;
@@ -44,6 +44,13 @@ handle!(Files, "files");
 handle!(Moderations, "moderations");
 
 impl Responses<'_> {
+    /// Open a persistent Responses WebSocket. Send `response.create` events
+    /// without the HTTP-only `stream` and `background` fields. Model events and
+    /// new event types are available through the session's JSON methods.
+    pub async fn connect(&self) -> Result<WebSocketSession> {
+        self.client.websocket("responses", &[]).await
+    }
+
     pub async fn create(&self, body: &ResponseRequest) -> Result<Response> {
         self.create_json(body).await
     }

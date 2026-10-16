@@ -264,10 +264,7 @@ async fn bounded_responses_and_events() {
         Err(Error::Protocol(_))
     ));
     Mock::given(path("/events"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw("data: 1\n\n", "text/event-stream"),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_raw("data: 1\n\n", "text/event-stream"))
         .mount(&s)
         .await;
     let mut stream = c.stream(Method::GET, "events", &[], None).await.unwrap();
@@ -279,13 +276,10 @@ async fn stream_done_and_content_type_validation() {
     let s = MockServer::start().await;
     let c = client(&s);
     Mock::given(path("/v1/events"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(
-                    "event: delta\ndata: {\"text\":\"hi\"}\n\ndata: [DONE]\n\ndata: ignored\n\n",
-                    "text/event-stream; charset=utf-8",
-                ),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_raw(
+            "event: delta\ndata: {\"text\":\"hi\"}\n\ndata: [DONE]\n\ndata: ignored\n\n",
+            "text/event-stream; charset=utf-8",
+        ))
         .mount(&s)
         .await;
     let mut events = c
@@ -373,4 +367,96 @@ fn pagination_rejects_missing_cursor() {
     .unwrap();
     assert_eq!(p.next_after().unwrap(), Some("a"));
     assert_eq!(p.extra["new_field"], 42);
+}
+
+#[tokio::test]
+async fn transport_errors_strip_signed_urls_in_display_and_debug() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    drop(listener);
+    let c = Client::new(Config::new(format!("http://{address}"), "key").max_retries(0)).unwrap();
+    let url = format!("http://{address}/upload?upload_id=TEST_SECRET_TOKEN");
+    let error = c
+        .raw(Method::POST, &url, &[], &[], vec![])
+        .await
+        .unwrap_err();
+    assert!(!format!("{error}").contains("TEST_SECRET_TOKEN"));
+    assert!(!format!("{error:?}").contains("TEST_SECRET_TOKEN"));
+    let error = c
+        .get::<Value>("/files", &[("signed".into(), "TEST_SECRET_QUERY".into())])
+        .await
+        .unwrap_err();
+    assert!(!format!("{error:?}").contains("TEST_SECRET_QUERY"));
+}
+
+#[test]
+fn ipv6_loopback_is_allowed_and_private_http_is_rejected() {
+    assert!(Client::new(Config::new("http://[::1]:8080/v1", "key")).is_ok());
+    assert!(Client::new(Config::new("http://192.168.1.1/v1", "key")).is_err());
+}
+
+#[tokio::test]
+async fn downloads_follow_redirects_without_cross_origin_credentials() {
+    let a = MockServer::start().await;
+    let b = MockServer::start().await;
+    let c = Client::new(
+        Config::new(a.uri(), "secret")
+            .header("x-private-header", "private")
+            .unwrap(),
+    )
+    .unwrap();
+    Mock::given(path("/start"))
+        .and(header("authorization", "Bearer secret"))
+        .respond_with(
+            ResponseTemplate::new(302)
+                .insert_header("location", format!("{}/signed?token=opaque", b.uri())),
+        )
+        .expect(1)
+        .mount(&a)
+        .await;
+    Mock::given(path("/signed"))
+        .and(query_param("token", "opaque"))
+        .respond_with(
+            ResponseTemplate::new(307).insert_header("location", format!("{}/finish", a.uri())),
+        )
+        .expect(1)
+        .mount(&b)
+        .await;
+    Mock::given(path("/finish"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(vec![1, 0, 255]))
+        .expect(1)
+        .mount(&a)
+        .await;
+    assert_eq!(c.download("start").await.unwrap(), vec![1, 0, 255]);
+    let external = b.received_requests().await.unwrap();
+    assert!(!external[0].headers.contains_key("authorization"));
+    assert!(!external[0].headers.contains_key("x-private-header"));
+    let final_requests = a.received_requests().await.unwrap();
+    assert!(!final_requests[1].headers.contains_key("authorization"));
+    assert!(c.download(&format!("{}/signed", b.uri())).await.is_err());
+}
+
+#[tokio::test]
+async fn downloads_bound_redirects_and_reject_insecure_target() {
+    let s = MockServer::start().await;
+    Mock::given(path("/loop"))
+        .respond_with(ResponseTemplate::new(302).insert_header("location", "/loop"))
+        .expect(6)
+        .mount(&s)
+        .await;
+    assert!(matches!(
+        client(&s).download("/loop").await,
+        Err(Error::Protocol(_))
+    ));
+    Mock::given(path("/insecure"))
+        .respond_with(
+            ResponseTemplate::new(302).insert_header("location", "http://example.com/file"),
+        )
+        .expect(1)
+        .mount(&s)
+        .await;
+    assert!(matches!(
+        client(&s).download("/insecure").await,
+        Err(Error::Protocol(_))
+    ));
 }

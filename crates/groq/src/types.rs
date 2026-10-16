@@ -719,7 +719,7 @@ impl AudioRequest {
             } => {
                 let mut part = reqwest::multipart::Part::bytes(bytes).file_name(filename);
                 if let Some(mime) = mime_type {
-                    part = part.mime_str(&mime).map_err(Error::Transport)?;
+                    part = part.mime_str(&mime).map_err(Error::from)?;
                 }
                 form.part("file", part)
             }

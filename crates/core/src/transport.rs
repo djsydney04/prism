@@ -78,7 +78,11 @@ impl Client {
         if path.contains(['\\', '?', '#'])
             || path.chars().any(char::is_control)
             || path.starts_with("//")
-            || (!path.contains("://") && path.split('/').next().is_some_and(|part| part.contains(':')))
+            || (!path.contains("://")
+                && path
+                    .split('/')
+                    .next()
+                    .is_some_and(|part| part.contains(':')))
         {
             return Err(Error::Config(
                 "path must not contain a query, fragment, control, or backslash".into(),
@@ -405,6 +409,67 @@ impl Client {
             );
         }
         self.buffered(request.body(body).send().await?).await
+    }
+
+    /// Download media with at most five redirects. The initial URL must be on the
+    /// configured origin. All custom/authentication headers are permanently
+    /// removed once a redirect leaves that origin. Redirect URLs require HTTPS,
+    /// except between loopback test servers. Bodies use the configured size limit.
+    pub async fn download(&self, path: &str) -> Result<Vec<u8>> {
+        let mut url = if path.contains("://") {
+            self.same_origin(
+                Url::parse(path).map_err(|_| Error::Config("invalid download URL".into()))?,
+            )?
+        } else {
+            self.url(path, false)?
+        };
+        let anonymous = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(self.config.timeout)
+            .connect_timeout(Duration::from_secs(15))
+            .build()?;
+        let mut authenticated = true;
+        for hop in 0..=5 {
+            let client = if authenticated {
+                &self.inner
+            } else {
+                &anonymous
+            };
+            let response = client.get(url.clone()).send().await?;
+            if !matches!(response.status().as_u16(), 301 | 302 | 303 | 307 | 308) {
+                return Ok(self.buffered(response).await?.body);
+            }
+            if hop == 5 {
+                return Err(Error::Protocol("download exceeded five redirects".into()));
+            }
+            let location = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .and_then(|v| v.to_str().ok())
+                .ok_or_else(|| {
+                    Error::Protocol("download redirect missing a valid Location".into())
+                })?;
+            let next = url
+                .join(location)
+                .map_err(|_| Error::Protocol("invalid download redirect URL".into()))?;
+            let test_http =
+                crate::config::is_loopback(&self.config.base) && crate::config::is_loopback(&next);
+            if (next.scheme() != "https" && !(next.scheme() == "http" && test_http))
+                || !next.username().is_empty()
+                || next.password().is_some()
+                || next.fragment().is_some()
+            {
+                return Err(Error::Protocol(
+                    "download redirect requires HTTPS and no embedded credentials or fragment"
+                        .into(),
+                ));
+            }
+            if next.origin() != self.config.base.origin() {
+                authenticated = false;
+            }
+            url = next;
+        }
+        unreachable!("bounded redirect loop always returns")
     }
 }
 fn parse_retry_after(value: &str) -> Option<Duration> {

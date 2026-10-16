@@ -20,12 +20,20 @@ pub struct Content {
 impl Content {
     /// Make a user turn with a single text part.
     pub fn user(text: impl Into<String>) -> Self {
-        Self { role: Some("user".into()), parts: vec![Part::text(text)], ..Self::default() }
+        Self {
+            role: Some("user".into()),
+            parts: vec![Part::text(text)],
+            ..Self::default()
+        }
     }
 
     /// Make a model turn with a single text part.
     pub fn model(text: impl Into<String>) -> Self {
-        Self { role: Some("model".into()), parts: vec![Part::text(text)], ..Self::default() }
+        Self {
+            role: Some("model".into()),
+            parts: vec![Part::text(text)],
+            ..Self::default()
+        }
     }
 }
 
@@ -53,19 +61,43 @@ pub struct Part {
 
 impl Part {
     pub fn text(text: impl Into<String>) -> Self {
-        Self { text: Some(text.into()), ..Self::default() }
+        Self {
+            text: Some(text.into()),
+            ..Self::default()
+        }
     }
     /// Inline media; `data` must already be base64 encoded.
     pub fn inline(mime_type: impl Into<String>, data: impl Into<String>) -> Self {
-        Self { inline_data: Some(Blob { mime_type: mime_type.into(), data: data.into(), extra: Extra::new() }), ..Self::default() }
+        Self {
+            inline_data: Some(Blob {
+                mime_type: mime_type.into(),
+                data: data.into(),
+                extra: Extra::new(),
+            }),
+            ..Self::default()
+        }
     }
     /// Media previously uploaded through the Files API.
     pub fn file(mime_type: impl Into<String>, file_uri: impl Into<String>) -> Self {
-        Self { file_data: Some(FileData { mime_type: mime_type.into(), file_uri: file_uri.into(), extra: Extra::new() }), ..Self::default() }
+        Self {
+            file_data: Some(FileData {
+                mime_type: mime_type.into(),
+                file_uri: file_uri.into(),
+                extra: Extra::new(),
+            }),
+            ..Self::default()
+        }
     }
     /// Supply a tool result. Calling the tool itself is the application's job.
     pub fn function_response(name: impl Into<String>, response: Value) -> Self {
-        Self { function_response: Some(FunctionResponse { name: name.into(), response, ..FunctionResponse::default() }), ..Self::default() }
+        Self {
+            function_response: Some(FunctionResponse {
+                name: name.into(),
+                response,
+                ..FunctionResponse::default()
+            }),
+            ..Self::default()
+        }
     }
 }
 
@@ -174,7 +206,10 @@ pub struct GenerateContentRequest {
 
 impl GenerateContentRequest {
     pub fn text(text: impl Into<String>) -> Self {
-        Self { contents: vec![Content::user(text)], ..Self::default() }
+        Self {
+            contents: vec![Content::user(text)],
+            ..Self::default()
+        }
     }
 }
 
@@ -198,14 +233,26 @@ pub struct GenerateContentResponse {
 impl GenerateContentResponse {
     /// Text from the first candidate, excluding explicitly marked thought parts.
     pub fn text(&self) -> String {
-        self.candidates.first().and_then(|c| c.content.as_ref()).map(|c| {
-            c.parts.iter().filter(|p| p.thought != Some(true)).filter_map(|p| p.text.as_deref()).collect()
-        }).unwrap_or_default()
+        self.candidates
+            .first()
+            .and_then(|c| c.content.as_ref())
+            .map(|c| {
+                c.parts
+                    .iter()
+                    .filter(|p| p.thought != Some(true))
+                    .filter_map(|p| p.text.as_deref())
+                    .collect()
+            })
+            .unwrap_or_default()
     }
     /// Function calls from the first candidate. The SDK never executes them.
     pub fn function_calls(&self) -> impl Iterator<Item = &FunctionCall> {
-        self.candidates.first().and_then(|c| c.content.as_ref()).into_iter()
-            .flat_map(|c| c.parts.iter()).filter_map(|p| p.function_call.as_ref())
+        self.candidates
+            .first()
+            .and_then(|c| c.content.as_ref())
+            .into_iter()
+            .flat_map(|c| c.parts.iter())
+            .filter_map(|p| p.function_call.as_ref())
     }
 }
 
@@ -255,6 +302,8 @@ pub struct EmbedContentRequest {
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_dimensionality: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub embed_content_config: Option<Value>,
     #[serde(default, flatten)]
     pub extra: Extra,
 }
@@ -381,6 +430,79 @@ pub struct Operation {
     pub extra: Extra,
 }
 
+/// Batch resource returned by update methods. Lifecycle polling returns `Operation`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Batch {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_config: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub batch_stats: Option<Value>,
+    #[serde(default, flatten)]
+    pub extra: Extra,
+}
+
+pub type GenerateContentBatch = Batch;
+pub type EmbedContentBatch = Batch;
+
+/// Initial Gemini Live session configuration. Send through `Client::live_connect`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveSetup {
+    pub model: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generation_config: Option<GenerationConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_instruction: Option<Content>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tools: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub realtime_input_config: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_resumption: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_window_compression: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_audio_transcription: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_audio_transcription: Option<Value>,
+    #[serde(default, flatten)]
+    pub extra: Extra,
+}
+
+/// A Gemini Live server event. New event shapes survive in `extra`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveServerMessage {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub setup_complete: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_content: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_cancellation: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub go_away: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_resumption_update: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usage_metadata: Option<Value>,
+    #[serde(default, flatten)]
+    pub extra: Extra,
+}
+
 /// Interactions use snake_case fields, unlike the older model API.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct InteractionRequest {
@@ -423,8 +545,13 @@ pub struct Interaction {
 impl Interaction {
     /// Concatenate text in model-output steps, preserving other steps in `steps`.
     pub fn text(&self) -> String {
-        self.steps.iter().filter(|s| s["type"] == "model_output")
-            .filter_map(|s| s["content"].as_array()).flatten()
-            .filter(|p| p["type"] == "text").filter_map(|p| p["text"].as_str()).collect()
+        self.steps
+            .iter()
+            .filter(|s| s["type"] == "model_output")
+            .filter_map(|s| s["content"].as_array())
+            .flatten()
+            .filter(|p| p["type"] == "text")
+            .filter_map(|p| p["text"].as_str())
+            .collect()
     }
 }

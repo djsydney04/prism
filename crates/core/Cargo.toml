@@ -21,6 +21,8 @@ async-stream.workspace = true
 thiserror = "2"
 percent-encoding = "2"
 httpdate = "1"
+url = "2"
+tokio-tungstenite.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true

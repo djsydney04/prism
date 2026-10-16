@@ -6,7 +6,8 @@ Rust 1.88 or newer is required.
 
 Common generation APIs have extensible typed inputs and outputs. Advanced APIs
 use an owned `Resource` handle that supports JSON, pagination queries, multipart
-uploads, actions, and streaming. Unknown fields and event types are retained.
+uploads, actions, and streaming. Responses, Realtime, and Live also support
+WebSocket connections. Unknown fields and event types are retained.
 
 ## Import from Git
 
@@ -84,6 +85,38 @@ stream to stop reading. Streaming methods force `stream=true`; typed non-stream
 JSON methods force `stream=false` when the operation supports both modes.
 Multipart streaming forms must explicitly include `.text("stream", "true")`.
 
+## Persistent WebSocket sessions
+
+`responses().connect()` opens a Responses WebSocket. Send a `response.create`
+event with the same model/input fields as HTTP, omitting HTTP-only `stream` and
+`background` parameters. Handle lifecycle and error events explicitly:
+
+```rust,no_run
+use sydney_openai::{Client, serde_json::{json, Value}};
+
+# async fn example(client: &Client, model: String) -> sydney_openai::Result<()> {
+let mut session = client.responses().connect().await?;
+session.send_json(&json!({"type":"response.create","model":model,"input":"Hello"})).await?;
+while let Some(event) = session.recv_json::<Value>().await? {
+    if event["type"] == "response.completed" { break; }
+    if event["type"] == "error" || event["type"] == "response.failed" {
+        return Err(sydney_openai::Error::Protocol("response failed".into()));
+    }
+}
+session.close().await?;
+# Ok(())
+# }
+```
+
+`realtime_connect(model)` connects to Realtime. `live_connect(&[])` connects to
+Live; send `session.start` with your model and configuration, and wait for
+`session.started` before sending audio. `websocket(path, query)` covers sidebands,
+forks, and other documented socket endpoints on the configured API origin.
+`split()` supplies independent sender/receiver handles for concurrent audio I/O.
+JSON event contents remain open to support tool events, new fields, and Responses
+`stream_id` multiplexing. Callers own model event handling and reconnection policy;
+application messages are never silently replayed.
+
 ## Chat, embeddings, images, audio, files, and moderation
 
 The typed entry points are `responses()`, `chat()`, `embeddings()`,
@@ -128,8 +161,8 @@ let batch: Value = client.batches().create(&json!({
 
 let mut query = vec![("limit".into(), "20".into())];
 loop {
-    let page: List<Value> = client.models().get(&query).await?;
-    // Process page.data here; only paginated resources return has_more/last_id.
+    let page: List<Value> = client.files().resource().get(&query).await?;
+    // Process page.data here.
     let Some(after) = page.next_after()? else { break };
     query.retain(|(key, _)| key != "after");
     query.push(("after".into(), after.into()));
@@ -176,7 +209,22 @@ serialization, multimodal/tool data, streams, multipart uploads, binary formats,
 pagination, advanced resources, and error preservation. They do not establish
 live account permissions or every provider-side schema combination.
 
-This crate does not provide a WebSocket or WebRTC media engine, execute generated
-tool calls, verify incoming webhook signatures, or make model output trustworthy.
+Verify incoming webhooks before parsing their raw body:
+
+```rust,no_run
+use sydney_openai::webhooks::{WebhookHeaders, WebhookVerifier};
+# fn handle(raw_body: &[u8], headers: &sydney_openai::reqwest::header::HeaderMap)
+# -> Result<(), Box<dyn std::error::Error>> {
+let secret = std::env::var("OPENAI_WEBHOOK_SECRET")?;
+let verifier = WebhookVerifier::new(&secret)?;
+let verified = verifier.verify(raw_body, WebhookHeaders::from_headers(headers)?)?;
+let event: sydney_openai::Value = verified.json()?;
+// Deduplicate verified.id() in durable storage before processing event.
+# let _ = event;
+# Ok(()) }
+```
+
+This crate does not provide a WebRTC media engine, execute generated tool calls,
+or make model output trustworthy.
 Applications must treat model and retrieved content as untrusted input and
 authorize tool execution themselves.

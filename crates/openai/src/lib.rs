@@ -3,7 +3,7 @@
 //! Common generation operations have extensible typed requests and responses.
 //! Every REST surface is reachable through [`Resource`] or [`Client::http`],
 //! including new endpoint parameters and response fields. No model names are
-//! hard-coded. WebRTC and WebSocket sessions require a separate transport.
+//! hard-coded. Responses, Realtime, and Live support WebSocket sessions.
 //!
 //! ```no_run
 //! use sydney_openai::{Client, ResponseRequest};
@@ -20,10 +20,12 @@
 
 mod resources;
 pub mod types;
+pub mod webhooks;
 
 pub use resources::{Audio, Chat, Embeddings, Files, Images, Moderations, Responses};
 pub use sydney_ai_core::{
-    reqwest, serde_json, Config, Error, EventStream, Method, Resource, Result,
+    reqwest, serde_json, Config, Error, EventStream, Method, RawResponse, Resource, Result,
+    SseEvent, Value, WebSocketReceiver, WebSocketSender, WebSocketSession,
 };
 pub use types::*;
 
@@ -73,6 +75,30 @@ impl Client {
         self.http.resource(path)
     }
 
+    /// Connect to a documented WebSocket endpoint on the configured API origin.
+    /// Dynamic path IDs should be encoded with `Resource::child`.
+    pub async fn websocket(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+    ) -> Result<WebSocketSession> {
+        self.http.websocket(path, query).await
+    }
+
+    /// Connect to the Realtime WebSocket API using any available model ID.
+    /// Send and receive the documented JSON client/server events on the session.
+    pub async fn realtime_connect(&self, model: impl Into<String>) -> Result<WebSocketSession> {
+        self.websocket("realtime", &[("model".into(), model.into())])
+            .await
+    }
+
+    /// Connect to the Live primary WebSocket. The documented API takes no query
+    /// parameters; pass an empty slice. Send `session.start` with a model and
+    /// configuration, then wait for `session.started` before sending audio.
+    pub async fn live_connect(&self, query: &[(String, String)]) -> Result<WebSocketSession> {
+        self.websocket("live/sessions", query).await
+    }
+
     pub fn responses(&self) -> Responses<'_> {
         Responses::new(&self.http)
     }
@@ -110,6 +136,7 @@ impl Client {
         realtime => "realtime",
         organization => "organization",
         agents => "agents",
+        vaults => "vaults",
         skills => "skills",
         live => "live",
         webhooks => "webhook_endpoints",

@@ -71,6 +71,12 @@ impl Config {
         );
         Ok(self)
     }
+    /// Authenticate with a caller-managed Bearer token instead of an API-key header.
+    /// Token refresh is the calling application's responsibility.
+    pub fn with_bearer_authentication(mut self) -> Self {
+        self.key_header = None;
+        self
+    }
     /// Add a default header such as OpenAI-Project. Authentication cannot be overridden.
     pub fn header(mut self, name: &str, value: &str) -> Result<Self> {
         let name = HeaderName::from_bytes(name.as_bytes())
@@ -107,11 +113,7 @@ impl Config {
         self
     }
     pub(crate) fn validate(&mut self) -> Result<()> {
-        let loopback = self.base.host_str().is_some_and(|h| {
-            h == "localhost"
-                || h.parse::<std::net::IpAddr>()
-                    .is_ok_and(|ip| ip.is_loopback())
-        });
+        let loopback = is_loopback(&self.base);
         if self.base.scheme() != "https" && !(self.base.scheme() == "http" && loopback) {
             return Err(Error::Config(
                 "base URL must use HTTPS (HTTP allowed only on loopback)".into(),
@@ -140,5 +142,14 @@ impl Config {
             self.base.set_path(&path);
         }
         Ok(())
+    }
+}
+
+pub(crate) fn is_loopback(url: &Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain(h)) => h == "localhost",
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        None => false,
     }
 }
