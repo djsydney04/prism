@@ -22,9 +22,9 @@ Versioned Git dependencies work without a crates.io release:
 
 ```toml
 [dependencies]
-prism-openai = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" } # x-release-please-version
-prism-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" } # x-release-please-version
-prism-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" } # x-release-please-version
+prism-openai = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
+prism-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
+prism-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.1" } # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
