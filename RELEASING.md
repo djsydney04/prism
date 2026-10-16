@@ -1,48 +1,108 @@
-# Releasing
+# Releasing Prism
 
-The four crates use a synchronized workspace version. Make and review API changes
-on GitHub; run the full CI checks, independent review, and package verification
-before cutting a release. Update `CHANGELOG.md` and the installation tag in README.
+Prism releases `prism-ai-core`, `prism-openai`, `prism-gemini`, and `prism-groq`
+together at one workspace version. GitHub Actions verifies the released source
+and publishes all four crates. Local `cargo login` is not required.
 
-## GitHub release
+## One-time registry credential
 
-1. Update `[workspace.package].version` and the three path dependency versions of
-   `prism-ai-core`. Rebuild the lockfile and run all checks.
-2. Commit and push changes. Wait for GitHub Actions to pass for that exact commit.
-3. Create an annotated `vX.Y.Z` tag and push it. The release workflow verifies the
-   tag against every package version and creates a GitHub release with crate archives.
+Create a crates.io API token with permission to publish the four Prism crates,
+including permission to create them for their first publication. Add it as the
+repository Actions secret named **`CARGO_REGISTRY_TOKEN`** using
+[New repository secret](https://github.com/djsydney04/rust_sdks/settings/secrets/actions/new).
+Never commit the token or put it in a workflow input, issue, or chat.
 
-Git dependencies with `tag = "vX.Y.Z"` are immediately usable. Registry publication
-requires a crates.io account and package ownership, independently of GitHub access.
+The publishing job uses the `crates-io` GitHub environment. Its approval rules
+can require a maintainer before publication. An environment secret with the
+same name takes precedence over the repository secret, so keep it current if
+one is configured. CI and release PR tests do not receive registry or provider
+API tokens.
 
-## crates.io publication
+GitHub Actions PR creation is enabled for this repository through **Settings →
+Actions → General → Allow GitHub Actions to create and approve pull requests**.
+Default workflow token permissions remain read-only. The Release Please job
+explicitly receives `contents: write`, `pull-requests: write`, `issues: write`,
+and `actions: write` to manage releases, release PRs and labels, and CI dispatches.
+The release artifact job receives permission to upload GitHub release assets.
+These permissions do not make the workflow approve its own release PRs.
 
-Authenticate locally using `cargo login`, or add a scoped `CARGO_REGISTRY_TOKEN`
-GitHub Actions secret. Never commit a token or paste one into an issue or chat.
-The manual `Publish crates` workflow runs only after release checks and uses the
-`crates-io` GitHub environment, which can enforce repository approval policies.
-It publishes the core first, then all three SDKs after the core is indexed.
+## Publish the existing 0.2.0 release
 
-For manual publication:
+After adding the secret:
 
-```sh
-cargo publish -p prism-ai-core --locked
-# Wait for the core version to appear in the registry, then:
-cargo publish -p prism-openai --locked
-cargo publish -p prism-gemini --locked
-cargo publish -p prism-groq --locked
-```
+1. Open [Publish crates](https://github.com/djsydney04/rust_sdks/actions/workflows/publish.yml).
+2. Choose **Run workflow**, select the **main** branch, and enter version **0.2.0**
+   without the `v` prefix.
+3. Approve the `crates-io` environment deployment if its protection rules require it.
 
-Use `cargo package --workspace --locked` on current stable Cargo to package and
-verify the workspace together before its dependencies are published. Cargo uses
-the packaged sibling crates during this verification. Individual `cargo publish`
-operations still require publishing core first so registry clients can resolve it.
+The workflow resolves the existing GitHub release and tag to a commit, checks
+that it belongs to `main` history, and runs the complete CI checks for that
+commit. It verifies all package versions, builds the crate archives, and
+publishes `prism-ai-core` first. It waits for registry indexing before publishing
+`prism-openai`, `prism-gemini`, and `prism-groq` in that order.
 
-Prefer `python3 scripts/verify-packages.py` when verifying repeatedly. It assigns
-each run a fresh temporary target directory, avoiding Cargo's local-registry cache
-of an earlier unpublished core with the same version. It saves the four verified
-archives and `SHA256SUMS` to `target/package/vX.Y.Z/`. Version-specific directories
-keep historical archives out of the next release's upload. CI uses this wrapper too.
+If a run fails after publishing some crates, fix the reported cause and run
+**Publish crates** again on **main** with the same version. The publisher skips
+versions already present on crates.io and resumes the remaining work. It does
+not overwrite published crate versions or move release tags.
 
-Treat published versions as immutable. Breaking changes during 0.x require a new
-minor version; compatible fixes use a patch version. Never force-move release tags.
+## Future releases with Release Please
+
+1. Merge reviewed changes into `main` using conventional commit messages such as
+   `fix: handle an empty streaming event` or `feat: add a provider endpoint`.
+2. Release Please creates or updates a release PR containing the version bump
+   and changelog. Review it and its CI results.
+3. Merge the release PR when ready. Release Please creates the immutable version
+   tag and GitHub release, then calls the publication workflow in the same run.
+
+The configuration uses the `simple` release strategy with explicit TOML updates.
+It synchronizes `version.txt`, `[workspace.package].version`, the three core
+dependency version requirements, workspace lockfile entries, and marked install
+examples. Crate manifests keep `version.workspace = true`; they continue to
+inherit the shared workspace version.
+
+Release Please uses the built-in `GITHUB_TOKEN`; no personal access token is
+needed. It explicitly dispatches the read-only CI workflow on release PR
+branches. Publication uses the action's root `release_created`, `tag_name`, and
+`sha` outputs, rather than relying on release/tag events to start another run.
+GitHub suppresses most events generated by `GITHUB_TOKEN`; automated PR checks
+may otherwise require approval. The publishing pipeline validates the tag and
+expected SHA, runs full CI against that exact source, attaches verified archives,
+and publishes only after those jobs pass.
+
+The registry credential is injected only into the publishing job within the
+`crates-io` environment. The publisher uses current automation with a separate
+checkout of the immutable release commit, so an existing release can be retried
+without changing its tag. A manual **Publish crates** dispatch also recovers a
+release created successfully before a later publication failure.
+
+## Package artifacts and manual tag fallback
+
+`python3 scripts/verify-packages.py` packages and verifies the workspace in a
+fresh temporary build directory, including unpublished sibling dependencies.
+It saves all four `.crate` archives and `SHA256SUMS` under
+`target/package/vX.Y.Z/`. GitHub release assets use these verified, versioned
+files; each version has its own directory.
+
+Release Please is the normal versioning route. If a release must be prepared
+manually, update the shared workspace version, core dependency requirements,
+lockfile, `version.txt`, changelog, and installation examples together. Commit
+and push, wait for full CI, then create and push a new annotated `vX.Y.Z` tag.
+The tag workflow prepares the matching GitHub release before calling the same
+verification and publication pipeline. The tag must identify a commit in
+`main` history and agree with every package version. Never force-move an
+existing tag. Breaking changes during `0.x` require a new minor version;
+compatible fixes use a patch version.
+
+## Optional trusted publishing later
+
+The first publication of each new crate requires an API token. Once all four
+crates exist on crates.io, their owners can configure trusted publishing for
+this repository and the publishing workflow, then migrate to short-lived OIDC
+credentials. The current workflows use `CARGO_REGISTRY_TOKEN`; OIDC is not yet
+configured. Remove the long-lived secret only after the replacement is working.
+
+References: [Release Please action and outputs](https://github.com/googleapis/release-please-action),
+[GitHub workflow triggering rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow),
+[Cargo publishing](https://doc.rust-lang.org/cargo/reference/publishing.html), and
+[crates.io trusted publishing](https://crates.io/docs/trusted-publishing).

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "bd67bdb480633100b903f800f10a3c5222af28b5",
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "prism",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {"type": "toml", "path": "Cargo.toml", "jsonpath": "$.workspace.package.version"},
+        {"type": "toml", "path": "crates/openai/Cargo.toml", "jsonpath": "$.dependencies['prism-ai-core'].version"},
+        {"type": "toml", "path": "crates/gemini/Cargo.toml", "jsonpath": "$.dependencies['prism-ai-core'].version"},
+        {"type": "toml", "path": "Cargo.lock", "jsonpath": "$.package[?(@.name.value == 'prism-ai-core' || @.name.value == 'prism-openai' || @.name.value == 'prism-gemini' || @.name.value == 'prism-groq')].version"},
+        {"type": "toml", "path": "crates/groq/Cargo.toml", "jsonpath": "$.dependencies['prism-ai-core'].version"},
+        "README.md", "crates/openai/README.md", "crates/gemini/README.md", "crates/groq/README.md", "docs/openai.md"
+      ]
+    }
+  }
+}

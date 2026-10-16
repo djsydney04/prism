@@ -3,35 +3,105 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Existing release version, without the v prefix
+        description: Existing GitHub release version, without v (also supports retries)
+        required: true
+        default: '0.2.0'
+        type: string
+  workflow_call:
+    inputs:
+      tag:
         required: true
         type: string
+      expected-sha:
+        required: false
+        default: ''
+        type: string
+    secrets:
+      CARGO_REGISTRY_TOKEN:
+        required: false
 permissions:
   contents: read
 jobs:
-  publish:
+  resolve:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    environment: crates-io
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      sha: ${{ steps.resolve.outputs.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: refs/tags/v${{ inputs.version }}
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - id: resolve
+        env:
+          RELEASE_TAG: ${{ inputs.tag || format('v{0}', inputs.version) }}
+          EXPECTED_SHA: ${{ inputs.expected-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release.py resolve --tag "$RELEASE_TAG" --expected-sha "$EXPECTED_SHA"
+  verify:
+    needs: resolve
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.resolve.outputs.sha }}
+  artifacts:
+    needs: [resolve, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: automation
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          path: source
+          persist-credentials: false
       - run: rustup toolchain install stable --profile minimal
       - run: rustup default stable
-      - run: rustup component add rustfmt clippy
-      - name: Verify release version and existing GitHub release
+      - name: Verify current publisher against the released source
         env:
-          RELEASE_TAG: v${{ inputs.version }}
-          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          python3 scripts/release.py check --tag "$RELEASE_TAG"
-          gh release view "$RELEASE_TAG"
-      - run: cargo fmt --all --check
-      - run: cargo test --workspace --all-targets --locked
-      - run: cargo test --workspace --doc --locked
-      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: python3 scripts/verify-packages.py
+          python3 automation/scripts/release.py --root "$GITHUB_WORKSPACE/source" check --tag "$RELEASE_TAG"
+          python3 automation/scripts/verify-packages.py --root "$GITHUB_WORKSPACE/source"
+      - name: Attach verified archives to the GitHub release
+        env:
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "$RELEASE_TAG" source/target/package/"$RELEASE_TAG"/*.crate source/target/package/"$RELEASE_TAG"/SHA256SUMS --clobber
+  publish:
+    needs: [resolve, verify, artifacts]
+    runs-on: ubuntu-latest
+    environment: crates-io
+    concurrency:
+      group: prism-crates-io
+      cancel-in-progress: false
+    steps:
+      - name: Check registry credential
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo '::error::Add the CARGO_REGISTRY_TOKEN GitHub Actions secret, then rerun Publish crates for this version.'
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: automation
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal
+      - run: rustup default stable
       - name: Publish in dependency order
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: python3 scripts/release.py publish
+        run: python3 automation/scripts/release.py --root "$GITHUB_WORKSPACE/source" publish

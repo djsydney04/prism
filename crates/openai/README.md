@@ -13,12 +13,12 @@ WebSocket connections. Unknown fields and event types are retained.
 
 ```toml
 [dependencies]
-prism-openai = { git = "https://github.com/djsydney04/rust_sdks.git", tag = "v0.2.0" }
+prism-openai = { git = "https://github.com/djsydney04/rust_sdks.git", tag = "v0.2.0" } # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
 ```
 
-After a registry release, use `prism-openai = "0.2"` instead. Import it in Rust
+After a registry release, use `prism-openai = "0.2.0"` instead. Import it in Rust <!-- x-release-please-version -->
 as `prism_openai`. The Git dependency works independently of registry publication;
 pin a released tag or commit for reproducible deployments.
 

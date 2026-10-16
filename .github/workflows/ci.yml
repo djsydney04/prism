@@ -3,7 +3,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 jobs:
@@ -16,6 +22,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - run: rustup toolchain install stable --profile minimal
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
@@ -31,6 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - run: rustup toolchain install 1.88.0 --profile minimal
       - run: cargo +1.88.0 check --workspace --all-targets --locked
   package:
@@ -38,6 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - run: rustup toolchain install stable --profile minimal
       - run: rustup default stable
       - run: python3 scripts/verify-packages.py
@@ -46,7 +61,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - run: rustup toolchain install stable --profile minimal
       - run: rustup default stable
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: cargo audit --deny warnings
+  release-tooling:
+    name: Release tooling tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Historical SDK tags may predate these tests; validate the publisher itself.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: python3 -m unittest discover -s scripts/tests -v

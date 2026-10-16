@@ -14,11 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-dirty", action="store_true")
+    parser.add_argument("--root", type=Path, default=ROOT)
     args = parser.parse_args()
-    target = ROOT / "target"
+    root = args.root.resolve()
+    target = root / "target"
     target.mkdir(exist_ok=True)
     metadata = json.loads(subprocess.check_output(
-        ["cargo", "metadata", "--no-deps", "--format-version", "1", "--locked"], cwd=ROOT))
+        ["cargo", "metadata", "--no-deps", "--format-version", "1", "--locked"], cwd=root))
     versions = {p["version"] for p in metadata["packages"]}
     if len(versions) != 1:
         raise SystemExit("All packages must have the same release version")
@@ -33,7 +35,7 @@ def main():
         command = ["cargo", "package", "--workspace", "--locked", "--target-dir", temporary]
         if args.allow_dirty:
             command.append("--allow-dirty")
-        subprocess.run(command, cwd=ROOT, check=True)
+        subprocess.run(command, cwd=root, check=True)
         archives = sorted((Path(temporary) / "package").glob("*.crate"))
         if len(archives) != 4 or {p.name for p in archives} != expected:
             raise SystemExit("Expected exactly four verified crate archives")
