@@ -1,4 +1,4 @@
-# sydney-openai
+# prism-openai
 
 An independent, unofficial asynchronous Rust SDK for OpenAI. Written against
 official HTTP documentation; no third-party SDK implementation is vendored.
@@ -13,23 +13,23 @@ WebSocket connections. Unknown fields and event types are retained.
 
 ```toml
 [dependencies]
-sydney-openai = { git = "https://github.com/djsydney04/rust_sdks.git", branch = "main" }
+prism-openai = { git = "https://github.com/djsydney04/rust_sdks.git", tag = "v0.2.0" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
 ```
 
-After a registry release, use `sydney-openai = "0.1"` instead. Import it in Rust
-as `sydney_openai`. The Git dependency works independently of registry publication;
+After a registry release, use `prism-openai = "0.2"` instead. Import it in Rust
+as `prism_openai`. The Git dependency works independently of registry publication;
 pin a released tag or commit for reproducible deployments.
 
 Set `OPENAI_API_KEY` and `OPENAI_MODEL` in your environment. API calls may incur
 provider charges. No API key is required for the mock test suite.
 
 ```rust,no_run
-use sydney_openai::{Client, ResponseRequest};
+use prism_openai::{Client, ResponseRequest};
 
 #[tokio::main]
-async fn main() -> sydney_openai::Result<()> {
+async fn main() -> prism_openai::Result<()> {
     let client = Client::from_env()?;
     let model = std::env::var("OPENAI_MODEL").expect("set OPENAI_MODEL");
     let request = ResponseRequest::new(model, "Explain Rust ownership in one sentence.");
@@ -43,9 +43,9 @@ outputs, reasoning configuration, stateful conversations, background execution,
 and new parameters can use `serde_json::json!` values or `with_extra`:
 
 ```rust,no_run
-use sydney_openai::{Client, ResponseRequest, serde_json::json};
+use prism_openai::{Client, ResponseRequest, serde_json::json};
 
-# async fn example(client: &Client, model: String) -> sydney_openai::Result<()> {
+# async fn example(client: &Client, model: String) -> prism_openai::Result<()> {
 let request = ResponseRequest::new(model, json!([
     {"role":"user","content":[{"type":"input_text","text":"Find the answer"}]}
 ]))
@@ -64,9 +64,9 @@ tools or following generated instructions.
 
 ```rust,no_run
 use futures_util::StreamExt;
-use sydney_openai::{Client, ResponseRequest, serde_json::Value};
+use prism_openai::{Client, ResponseRequest, serde_json::Value};
 
-# async fn example(client: &Client, model: String) -> sydney_openai::Result<()> {
+# async fn example(client: &Client, model: String) -> prism_openai::Result<()> {
 let mut stream = client.responses().stream(&ResponseRequest::new(model, "Hello")).await?;
 while let Some(event) = stream.next().await {
     let event = event?;
@@ -92,15 +92,15 @@ event with the same model/input fields as HTTP, omitting HTTP-only `stream` and
 `background` parameters. Handle lifecycle and error events explicitly:
 
 ```rust,no_run
-use sydney_openai::{Client, serde_json::{json, Value}};
+use prism_openai::{Client, serde_json::{json, Value}};
 
-# async fn example(client: &Client, model: String) -> sydney_openai::Result<()> {
+# async fn example(client: &Client, model: String) -> prism_openai::Result<()> {
 let mut session = client.responses().connect().await?;
 session.send_json(&json!({"type":"response.create","model":model,"input":"Hello"})).await?;
 while let Some(event) = session.recv_json::<Value>().await? {
     if event["type"] == "response.completed" { break; }
     if event["type"] == "error" || event["type"] == "response.failed" {
-        return Err(sydney_openai::Error::Protocol("response failed".into()));
+        return Err(prism_openai::Error::Protocol("response failed".into()));
     }
 }
 session.close().await?;
@@ -123,9 +123,9 @@ The typed entry points are `responses()`, `chat()`, `embeddings()`,
 `images()`, `audio()`, `files()`, and `moderations()`:
 
 ```rust,no_run
-use sydney_openai::{Client, ChatCompletionRequest, ChatMessage, EmbeddingRequest};
+use prism_openai::{Client, ChatCompletionRequest, ChatMessage, EmbeddingRequest};
 
-# async fn example(client: &Client, chat_model: String, embedding_model: String) -> sydney_openai::Result<()> {
+# async fn example(client: &Client, chat_model: String, embedding_model: String) -> prism_openai::Result<()> {
 let request = ChatCompletionRequest::new(chat_model, vec![ChatMessage::user("Hello")]);
 let completion = client.chat().create(&request).await?;
 let embeddings = client.embeddings().create(&EmbeddingRequest::new(embedding_model, "Hello")).await?;
@@ -149,9 +149,9 @@ support the other HTTP operations. Return any deserializable type, including
 `Value` when a schema has new fields.
 
 ```rust,no_run
-use sydney_openai::{Client, List, serde_json::{Value, json}};
+use prism_openai::{Client, List, serde_json::{Value, json}};
 
-# async fn example(client: &Client) -> sydney_openai::Result<()> {
+# async fn example(client: &Client) -> prism_openai::Result<()> {
 let result: Value = client.vector_stores().child("vs_123").action("search")
     .create(&json!({"query":"Rust ownership","max_num_results":5})).await?;
 
@@ -178,9 +178,9 @@ use the raw JSON result and documented query keys.
 ## Configuration and errors
 
 ```rust,no_run
-use sydney_openai::{Client, Config, BASE_URL};
+use prism_openai::{Client, Config, BASE_URL};
 
-# fn example(key: String) -> sydney_openai::Result<()> {
+# fn example(key: String) -> prism_openai::Result<()> {
 let config = Config::new(BASE_URL, key)
     .header("OpenAI-Organization", "org_example")?
     .header("OpenAI-Project", "proj_example")?;
@@ -212,13 +212,13 @@ live account permissions or every provider-side schema combination.
 Verify incoming webhooks before parsing their raw body:
 
 ```rust,no_run
-use sydney_openai::webhooks::{WebhookHeaders, WebhookVerifier};
-# fn handle(raw_body: &[u8], headers: &sydney_openai::reqwest::header::HeaderMap)
+use prism_openai::webhooks::{WebhookHeaders, WebhookVerifier};
+# fn handle(raw_body: &[u8], headers: &prism_openai::reqwest::header::HeaderMap)
 # -> Result<(), Box<dyn std::error::Error>> {
 let secret = std::env::var("OPENAI_WEBHOOK_SECRET")?;
 let verifier = WebhookVerifier::new(&secret)?;
 let verified = verifier.verify(raw_body, WebhookHeaders::from_headers(headers)?)?;
-let event: sydney_openai::Value = verified.json()?;
+let event: prism_openai::Value = verified.json()?;
 // Deduplicate verified.id() in durable storage before processing event.
 # let _ = event;
 # Ok(()) }

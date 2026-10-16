@@ -1,5 +1,5 @@
 //! Explicit opt-in tests. Generation may incur provider charges.
-use sydney_gemini::{Client, GenerateContentRequest};
+use prism_gemini::{Client, GenerateContentRequest};
 
 #[tokio::test]
 #[ignore = "requires GEMINI_API_KEY and network access"]

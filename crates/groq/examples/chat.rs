@@ -1,7 +1,7 @@
-use sydney_groq::{ChatRequest, Client, Message};
+use prism_groq::{ChatRequest, Client, Message};
 
 #[tokio::main]
-async fn main() -> sydney_groq::Result<()> {
+async fn main() -> prism_groq::Result<()> {
     let client = Client::from_env()?;
     let model = std::env::var("GROQ_MODEL").unwrap_or_else(|_| "llama-3.3-70b-versatile".into());
     let request = ChatRequest::new(

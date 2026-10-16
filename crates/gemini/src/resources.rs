@@ -405,7 +405,7 @@ impl Files<'_> {
     /// origin; cross-origin redirects permanently drop API keys and custom headers.
     /// User-uploaded files are generally not downloadable; generated media may be.
     pub async fn download(&self, download_uri: &str) -> Result<Vec<u8>> {
-        let mut url = sydney_ai_core::reqwest::Url::parse(download_uri)
+        let mut url = prism_ai_core::reqwest::Url::parse(download_uri)
             .map_err(|_| Error::Config("download URI must be an absolute provider URL".into()))?;
         if !url.query_pairs().any(|(key, _)| key == "alt") {
             url.query_pairs_mut().append_pair("alt", "media");

@@ -21,4 +21,4 @@ jobs:
       - name: Publish GitHub release and crate archives
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" target/package/*.crate target/package/SHA256SUMS --verify-tag --title "$GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+        run: gh release create "$GITHUB_REF_NAME" target/package/"$GITHUB_REF_NAME"/*.crate target/package/"$GITHUB_REF_NAME"/SHA256SUMS --verify-tag --title "Prism $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md

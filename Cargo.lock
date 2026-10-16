@@ -776,6 +776,66 @@ dependencies = [
 ]
 
 [[package]]
+name = "prism-ai-core"
+version = "0.2.0"
+dependencies = [
+ "async-stream",
+ "futures-core",
+ "futures-util",
+ "httpdate",
+ "percent-encoding",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "url",
+ "wiremock",
+]
+
+[[package]]
+name = "prism-gemini"
+version = "0.2.0"
+dependencies = [
+ "futures-util",
+ "prism-ai-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "wiremock",
+]
+
+[[package]]
+name = "prism-groq"
+version = "0.2.0"
+dependencies = [
+ "futures-util",
+ "prism-ai-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
+name = "prism-openai"
+version = "0.2.0"
+dependencies = [
+ "base64 0.22.1",
+ "futures-util",
+ "hmac",
+ "prism-ai-core",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tokio-tungstenite",
+ "wiremock",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1135,66 +1195,6 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
-
-[[package]]
-name = "sydney-ai-core"
-version = "0.1.0"
-dependencies = [
- "async-stream",
- "futures-core",
- "futures-util",
- "httpdate",
- "percent-encoding",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-tungstenite",
- "url",
- "wiremock",
-]
-
-[[package]]
-name = "sydney-gemini"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "serde",
- "serde_json",
- "sydney-ai-core",
- "tokio",
- "tokio-tungstenite",
- "wiremock",
-]
-
-[[package]]
-name = "sydney-groq"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "serde",
- "serde_json",
- "sydney-ai-core",
- "tokio",
- "wiremock",
-]
-
-[[package]]
-name = "sydney-openai"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "futures-util",
- "hmac",
- "serde",
- "serde_json",
- "sha2",
- "sydney-ai-core",
- "tokio",
- "tokio-tungstenite",
- "wiremock",
-]
 
 [[package]]
 name = "syn"

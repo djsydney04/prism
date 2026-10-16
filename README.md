@@ -1,4 +1,4 @@
-# Sydney Rust AI SDKs
+# Prism Rust AI SDKs
 
 Independent, unofficial async Rust crates for OpenAI, Google's Gemini Developer
 API, and Groq. Written here from provider documentation rather than copied from
@@ -6,10 +6,10 @@ another SDK. Not affiliated with or endorsed by these providers.
 
 | Crate | Rust import | API reference |
 |---|---|---|
-| `sydney-openai` | `sydney_openai` | [Coverage and examples](docs/openai.md) |
-| `sydney-gemini` | `sydney_gemini` | [Coverage and examples](docs/gemini.md) |
-| `sydney-groq` | `sydney_groq` | [Coverage and examples](docs/groq.md) |
-| `sydney-ai-core` | `sydney_ai_core` | Shared transport, errors, SSE, and resource operations |
+| `prism-openai` | `prism_openai` | [Coverage and examples](docs/openai.md) |
+| `prism-gemini` | `prism_gemini` | [Coverage and examples](docs/gemini.md) |
+| `prism-groq` | `prism_groq` | [Coverage and examples](docs/groq.md) |
+| `prism-ai-core` | `prism_ai_core` | Shared transport, errors, SSE, and resource operations |
 
 Requires Rust 1.88+ and a Tokio runtime. Every client is cloneable and shares its
 connection pool. The crates use Rustls; system OpenSSL is not required.
@@ -22,9 +22,9 @@ Versioned Git dependencies work without a crates.io release:
 
 ```toml
 [dependencies]
-sydney-openai = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.1.0" }
-sydney-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.1.0" }
-sydney-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.1.0" }
+prism-openai = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" }
+prism-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" }
+prism-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
@@ -39,7 +39,7 @@ environment. Keys are never compiled into the libraries. Examples accept model
 names from environment variables so you control model availability and pricing.
 
 ```rust,no_run
-use sydney_openai::{Client, ResponseRequest};
+use prism_openai::{Client, ResponseRequest};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -65,8 +65,8 @@ Resource access is an escape hatch, not evidence that every server-side workflow
 has been exercised. Model IDs are unrestricted strings.
 
 ```rust,no_run
-# async fn example(client: sydney_openai::Client) -> sydney_openai::Result<()> {
-let page: sydney_openai::serde_json::Value = client.models().list(&[]).await?;
+# async fn example(client: prism_openai::Client) -> prism_openai::Result<()> {
+let page: prism_openai::serde_json::Value = client.models().list(&[]).await?;
 println!("{page}");
 # Ok(()) }
 ```
@@ -116,7 +116,7 @@ are unnecessary. They check request paths, verbs, headers, bodies, binary upload
 SSE framing, extensions, error handling, retry behavior, and URL security. Live
 provider examples and ignored live tests are opt-in and may incur charges.
 After configuring a provider key and model name, run e.g.
-`cargo test -p sydney-openai --test live -- --ignored` to test that provider.
+`cargo test -p prism-openai --test live -- --ignored` to test that provider.
 Passing mock tests does not
 establish live service availability or access to beta features.
 

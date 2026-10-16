@@ -1,6 +1,6 @@
 [package]
-name = "sydney-ai-core"
-description = "Shared secure HTTP, SSE, pagination and errors for the Sydney unofficial AI SDKs"
+name = "prism-ai-core"
+description = "Shared secure HTTP, SSE, pagination and errors for the Prism unofficial AI SDKs"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

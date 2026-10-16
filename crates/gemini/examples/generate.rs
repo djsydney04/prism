@@ -1,7 +1,7 @@
-use sydney_gemini::{Client, GenerateContentRequest};
+use prism_gemini::{Client, GenerateContentRequest};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let model = std::env::var("GEMINI_MODEL").unwrap_or_else(|_| "gemini-flash-latest".into());
     let response = client

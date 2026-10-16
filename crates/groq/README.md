@@ -1,22 +1,25 @@
-# sydney-groq
+# prism-groq
 
 Independent, unofficial async Rust SDK for the Groq REST API. No third-party
 Groq SDK is wrapped or copied. Not affiliated with Groq.
 
 ```toml
 [dependencies]
-sydney-groq = "0.1"
+prism-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
 ```
 
+After registry publication, you can use `prism-groq = "0.2.0"` instead.
+The versioned Git dependency works independently of crates.io publication.
+
 Set `GROQ_API_KEY` in your environment. Never embed it in source control.
 
 ```rust,no_run
-use sydney_groq::{Client, ChatRequest, Message};
+use prism_groq::{Client, ChatRequest, Message};
 
 #[tokio::main]
-async fn main() -> sydney_groq::Result<()> {
+async fn main() -> prism_groq::Result<()> {
     let client = Client::from_env()?;
     let mut request = ChatRequest::new(
         "llama-3.3-70b-versatile",
@@ -32,9 +35,9 @@ async fn main() -> sydney_groq::Result<()> {
 ## Streaming
 
 ```rust,no_run
-# async fn example(client: &sydney_groq::Client, request: &sydney_groq::ChatRequest) -> sydney_groq::Result<()> {
+# async fn example(client: &prism_groq::Client, request: &prism_groq::ChatRequest) -> prism_groq::Result<()> {
 use futures_util::StreamExt;
-use sydney_groq::ChatChunk;
+use prism_groq::ChatChunk;
 let mut stream = client.chat().stream(request).await?;
 while let Some(event) = stream.next().await {
     let chunk: ChatChunk = event?.json()?;
@@ -53,7 +56,7 @@ Responses streaming preserves the provider's event names and raw JSON data.
 
 ```rust,no_run
 # fn example() {
-use sydney_groq::{serde_json::json, ChatRequest, ContentPart, Message, ResponseFormat, Tool};
+use prism_groq::{serde_json::json, ChatRequest, ContentPart, Message, ResponseFormat, Tool};
 let mut request = ChatRequest::new("your-vision-model", vec![Message::user(vec![
     ContentPart::text("Describe this image."),
     ContentPart::image("https://example.com/image.png"),
@@ -77,8 +80,8 @@ validate tool arguments and enforce authorization before acting on model output.
 ## Audio
 
 ```rust,no_run
-# async fn example(client: &sydney_groq::Client) -> Result<(), Box<dyn std::error::Error>> {
-use sydney_groq::{AudioRequest, SpeechRequest};
+# async fn example(client: &prism_groq::Client) -> Result<(), Box<dyn std::error::Error>> {
+use prism_groq::{AudioRequest, SpeechRequest};
 let request = AudioRequest::file("whisper-large-v3", "sample.wav", std::fs::read("sample.wav")?);
 let transcript = client.audio().transcribe(request).await?;
 println!("{}", transcript.text);
@@ -103,8 +106,8 @@ the caller.
 ## Responses, files, batches, models, and fine tuning
 
 ```rust,no_run
-# async fn example(client: &sydney_groq::Client) -> sydney_groq::Result<()> {
-use sydney_groq::{BatchRequest, ListOptions, ResponseRequest};
+# async fn example(client: &prism_groq::Client) -> prism_groq::Result<()> {
+use prism_groq::{BatchRequest, ListOptions, ResponseRequest};
 let response = client.responses().create(
     &ResponseRequest::new("openai/gpt-oss-120b", "Write a haiku.")
 ).await?;
@@ -134,8 +137,8 @@ started by the library.
 ## Configuration, errors, and API evolution
 
 ```rust,no_run
-# fn example() -> sydney_groq::Result<()> {
-use sydney_groq::{Client, Config};
+# fn example() -> prism_groq::Result<()> {
+use prism_groq::{Client, Config};
 let config = Config::new("https://api.groq.com/", "your-key");
 let client = Client::with_config(config)?;
 # let _ = client;
@@ -163,9 +166,9 @@ These paths are relative to the configured origin, for example
 ## Validation
 
 ```sh
-cargo test -p sydney-groq
-cargo test -p sydney-groq --doc
-cargo run -p sydney-groq --example chat
+cargo test -p prism-groq
+cargo test -p prism-groq --doc
+cargo run -p prism-groq --example chat
 ```
 
 Mock-server tests cover every documented route, request serialization,

@@ -403,7 +403,7 @@ pub struct List<T> {
 
 impl<T> List<T> {
     /// Cursor for the next page, or an error for a malformed paginated response.
-    pub fn next_after(&self) -> sydney_ai_core::Result<Option<&str>> {
+    pub fn next_after(&self) -> prism_ai_core::Result<Option<&str>> {
         if self.has_more != Some(true) {
             return Ok(None);
         }
@@ -412,7 +412,7 @@ impl<T> List<T> {
             .filter(|id| !id.is_empty())
             .map(Some)
             .ok_or_else(|| {
-                sydney_ai_core::Error::Protocol("page has_more=true without last_id".into())
+                prism_ai_core::Error::Protocol("page has_more=true without last_id".into())
             })
     }
 }

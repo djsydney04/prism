@@ -5,8 +5,8 @@
 //! Remote tool calls are returned as data; this crate does not execute tools.
 //!
 //! ```no_run
-//! # async fn example() -> sydney_groq::Result<()> {
-//! use sydney_groq::{Client, ChatRequest, Message};
+//! # async fn example() -> prism_groq::Result<()> {
+//! use prism_groq::{Client, ChatRequest, Message};
 //! let client = Client::from_env()?;
 //! let request = ChatRequest::new("llama-3.3-70b-versatile", vec![Message::user("Hi")]);
 //! let response = client.chat().create(&request).await?;
@@ -17,10 +17,10 @@
 mod types;
 pub use types::*;
 
+use prism_ai_core::Client as HttpClient;
+pub use prism_ai_core::{reqwest, Config, Error, EventStream, Method, Resource, Result};
 use serde::{de::DeserializeOwned, Serialize};
 pub use serde_json::{self, Value};
-use sydney_ai_core::Client as HttpClient;
-pub use sydney_ai_core::{reqwest, Config, Error, EventStream, Method, Resource, Result};
 
 /// Origin used by the public Groq API.
 pub const BASE_URL: &str = "https://api.groq.com/";

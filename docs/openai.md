@@ -1,9 +1,9 @@
 # OpenAI coverage
 
-The `sydney-openai` crate is an independent implementation based on the
+The `prism-openai` crate is an independent implementation based on the
 [official OpenAI HTTP API reference](https://developers.openai.com/api/reference/overview).
 The reference was reviewed on 2026-10-15. No third-party SDK code was imported.
-Package version is `0.1.0` and minimum supported Rust is 1.88.
+Package version is `0.2.0` and minimum supported Rust is 1.88.
 
 “Typed” below means a named request/response Rust type and an ergonomic method.
 “Resource” means an authenticated HTTP endpoint handle accepting any serializable
@@ -45,9 +45,9 @@ been exercised against a live OpenAI account.
 ## Resource examples
 
 ```rust,no_run
-use sydney_openai::{Client, Method, serde_json::{json, Value}};
+use prism_openai::{Client, Method, serde_json::{json, Value}};
 
-# async fn example(client: &Client) -> sydney_openai::Result<()> {
+# async fn example(client: &Client) -> prism_openai::Result<()> {
 // Actions append one safely encoded path segment.
 let cancelled: Value = client.batches().child("batch_123").action("cancel")
     .create(&json!({})).await?;
@@ -107,7 +107,7 @@ accessible when applications need binary data or lower-level frame handling.
 
 ## Test evidence
 
-`cargo test -p sydney-openai` runs offline contract tests against local HTTP mock
+`cargo test -p prism-openai` runs offline contract tests against local HTTP mock
 servers. They verify authenticated routing with a custom `/v1/` prefix, request
 extensions, multimodal input, typed response preservation, cancellation and
 empty delete responses, cursor queries, background response stream resumption,

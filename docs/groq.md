@@ -2,8 +2,8 @@
 
 Independently implemented from the [official Groq REST API reference](https://console.groq.com/docs/api-reference)
 and [batch guide](https://console.groq.com/docs/batch), reviewed 2026-10-15.
-No third-party SDK source is included. Package: `sydney-groq`; Rust import:
-`sydney_groq`.
+No third-party SDK source is included. Package: `prism-groq`; Rust import:
+`prism_groq`.
 
 | API operation | Method and route | SDK surface |
 | --- | --- | --- |

@@ -6,9 +6,9 @@
 //! hard-coded. Responses, Realtime, and Live support WebSocket sessions.
 //!
 //! ```no_run
-//! use sydney_openai::{Client, ResponseRequest};
+//! use prism_openai::{Client, ResponseRequest};
 //!
-//! # async fn example() -> sydney_openai::Result<()> {
+//! # async fn example() -> prism_openai::Result<()> {
 //! let client = Client::from_env()?;
 //! let model = std::env::var("OPENAI_MODEL").expect("set OPENAI_MODEL");
 //! let response = client.responses().create(&ResponseRequest::new(model, "Hello")).await?;
@@ -22,11 +22,11 @@ mod resources;
 pub mod types;
 pub mod webhooks;
 
-pub use resources::{Audio, Chat, Embeddings, Files, Images, Moderations, Responses};
-pub use sydney_ai_core::{
+pub use prism_ai_core::{
     reqwest, serde_json, Config, Error, EventStream, Method, RawResponse, Resource, Result,
     SseEvent, Value, WebSocketReceiver, WebSocketSender, WebSocketSession,
 };
+pub use resources::{Audio, Chat, Embeddings, Files, Images, Moderations, Responses};
 pub use types::*;
 
 /// Default OpenAI REST root. Custom roots support gateways and local mock tests.
@@ -35,7 +35,7 @@ pub const BASE_URL: &str = "https://api.openai.com/v1/";
 /// Authenticated OpenAI REST client backed by the shared secure HTTP transport.
 #[derive(Clone, Debug)]
 pub struct Client {
-    http: sydney_ai_core::Client,
+    http: prism_ai_core::Client,
 }
 
 macro_rules! resource_accessors {
@@ -58,12 +58,12 @@ impl Client {
     /// Supply timeouts, headers, retry policy, and a custom API root via Config.
     pub fn with_config(config: Config) -> Result<Self> {
         Ok(Self {
-            http: sydney_ai_core::Client::new(config)?,
+            http: prism_ai_core::Client::new(config)?,
         })
     }
 
     /// Low-level JSON, binary, multipart, raw HTTP, and streaming requests.
-    pub fn http(&self) -> &sydney_ai_core::Client {
+    pub fn http(&self) -> &prism_ai_core::Client {
         &self.http
     }
 

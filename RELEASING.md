@@ -7,7 +7,7 @@ before cutting a release. Update `CHANGELOG.md` and the installation tag in READ
 ## GitHub release
 
 1. Update `[workspace.package].version` and the three path dependency versions of
-   `sydney-ai-core`. Rebuild the lockfile and run all checks.
+   `prism-ai-core`. Rebuild the lockfile and run all checks.
 2. Commit and push changes. Wait for GitHub Actions to pass for that exact commit.
 3. Create an annotated `vX.Y.Z` tag and push it. The release workflow verifies the
    tag against every package version and creates a GitHub release with crate archives.
@@ -26,11 +26,11 @@ It publishes the core first, then all three SDKs after the core is indexed.
 For manual publication:
 
 ```sh
-cargo publish -p sydney-ai-core --locked
+cargo publish -p prism-ai-core --locked
 # Wait for the core version to appear in the registry, then:
-cargo publish -p sydney-openai --locked
-cargo publish -p sydney-gemini --locked
-cargo publish -p sydney-groq --locked
+cargo publish -p prism-openai --locked
+cargo publish -p prism-gemini --locked
+cargo publish -p prism-groq --locked
 ```
 
 Use `cargo package --workspace --locked` on current stable Cargo to package and
@@ -41,7 +41,8 @@ operations still require publishing core first so registry clients can resolve i
 Prefer `python3 scripts/verify-packages.py` when verifying repeatedly. It assigns
 each run a fresh temporary target directory, avoiding Cargo's local-registry cache
 of an earlier unpublished core with the same version. It saves the four verified
-archives and `SHA256SUMS` to `target/package/`. CI uses this wrapper too.
+archives and `SHA256SUMS` to `target/package/vX.Y.Z/`. Version-specific directories
+keep historical archives out of the next release's upload. CI uses this wrapper too.
 
 Treat published versions as immutable. Breaking changes during 0.x require a new
 minor version; compatible fixes use a patch version. Never force-move release tags.

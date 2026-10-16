@@ -10,7 +10,7 @@
 //! the timestamp window alone does not prevent repeated delivery in that window.
 //!
 //! ```no_run
-//! use sydney_openai::webhooks::{WebhookHeaders, WebhookVerifier};
+//! use prism_openai::webhooks::{WebhookHeaders, WebhookVerifier};
 //! # fn handle(body: &[u8], id: &str, timestamp: &str, signature: &str)
 //! # -> Result<(), Box<dyn std::error::Error>> {
 //! let secret = std::env::var("OPENAI_WEBHOOK_SECRET")?;

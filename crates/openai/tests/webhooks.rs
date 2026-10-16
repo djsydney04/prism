@@ -1,12 +1,12 @@
+use prism_openai::{
+    reqwest::header::{HeaderMap, HeaderValue},
+    webhooks::{WebhookError, WebhookHeaders, WebhookVerifier},
+};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use std::{
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
-};
-use sydney_openai::{
-    reqwest::header::{HeaderMap, HeaderValue},
-    webhooks::{WebhookError, WebhookHeaders, WebhookVerifier},
 };
 
 const SECRET: &str = "whsec_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";

@@ -2,7 +2,7 @@
 #![allow(clippy::result_large_err)]
 
 use futures_util::{SinkExt, StreamExt};
-use sydney_gemini::{json, Client, Config, GenerationConfig, LiveServerMessage, LiveSetup, Value};
+use prism_gemini::{json, Client, Config, GenerationConfig, LiveServerMessage, LiveSetup, Value};
 use tokio::net::TcpListener;
 use tokio_tungstenite::{
     accept_hdr_async,
@@ -150,7 +150,7 @@ async fn live_rejects_oauth_client_before_connecting() {
             .await,
     ] {
         match result {
-            Err(sydney_gemini::Error::Config(message)) => assert!(message.contains("OAuth")),
+            Err(prism_gemini::Error::Config(message)) => assert!(message.contains("OAuth")),
             other => panic!("unexpected result: {other:?}"),
         }
     }

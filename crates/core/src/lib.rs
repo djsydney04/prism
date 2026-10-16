@@ -1,4 +1,4 @@
-//! Shared transport for the unofficial Sydney AI SDKs.
+//! Shared transport for the unofficial Prism AI SDKs.
 //!
 //! REST credentials remain in headers; WebSocket protocols can opt into required
 //! query authentication. Paths are checked before authentication, and automatic

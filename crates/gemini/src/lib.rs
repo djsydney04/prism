@@ -4,12 +4,12 @@
 mod resources;
 pub mod types;
 
-pub use resources::*;
-pub use serde_json::{self, json, Value};
-pub use sydney_ai_core::{
+pub use prism_ai_core::{
     tungstenite, Config, Error, EventStream, Method, RawResponse, Resource, Result,
     WebSocketReceiver, WebSocketSender, WebSocketSession,
 };
+pub use resources::*;
+pub use serde_json::{self, json, Value};
 pub use types::*;
 
 /// Default service origin. Endpoints use explicit `/v1beta/` paths.
@@ -25,7 +25,7 @@ enum Authentication {
 /// Gemini Live requires query authentication for its WebSocket protocol.
 #[derive(Clone, Debug)]
 pub struct Client {
-    inner: sydney_ai_core::Client,
+    inner: prism_ai_core::Client,
     authentication: Authentication,
 }
 
@@ -42,7 +42,7 @@ impl Client {
     /// Override transport settings and the service origin (for example, a mock server).
     pub fn with_config(config: Config) -> Result<Self> {
         Ok(Self {
-            inner: sydney_ai_core::Client::new(config.with_api_key_header("x-goog-api-key")?)?,
+            inner: prism_ai_core::Client::new(config.with_api_key_header("x-goog-api-key")?)?,
             authentication: Authentication::ApiKey,
         })
     }
@@ -58,7 +58,7 @@ impl Client {
     /// selection. Use `Config::header("x-goog-user-project", project)` if required.
     pub fn with_oauth_config(config: Config) -> Result<Self> {
         Ok(Self {
-            inner: sydney_ai_core::Client::new(config.with_bearer_authentication())?,
+            inner: prism_ai_core::Client::new(config.with_bearer_authentication())?,
             authentication: Authentication::OAuth,
         })
     }
@@ -162,7 +162,7 @@ impl Client {
     }
 
     /// Access the shared transport for custom JSON, SSE, and byte requests.
-    pub fn transport(&self) -> &sydney_ai_core::Client {
+    pub fn transport(&self) -> &prism_ai_core::Client {
         &self.inner
     }
 }

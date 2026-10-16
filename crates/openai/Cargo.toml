@@ -1,5 +1,5 @@
 [package]
-name = "sydney-openai"
+name = "prism-openai"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ categories = ["api-bindings", "asynchronous"]
 base64 = "0.22"
 hmac = "0.12"
 sha2 = "0.10"
-sydney-ai-core = { path = "../core", version = "0.1.0" }
+prism-ai-core = { path = "../core", version = "0.2.0" }
 serde.workspace = true
 serde_json.workspace = true
 

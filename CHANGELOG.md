@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-10-15
+
+- Rename the SDK family to Prism: `prism-openai`, `prism-gemini`, `prism-groq`,
+  and `prism-ai-core`. Rust imports now use the `prism_` prefix.
+- Update manifests, examples, documentation, release tooling, and the HTTP user
+  agent consistently. SDK operations retain their existing behavior.
+- The earlier `v0.1.0` GitHub tag and its original package names remain intact.
+
 ## 0.1.0 — 2026-10-15
 
 Initial independently written unofficial OpenAI, Gemini, and Groq Rust crates.

@@ -1,11 +1,11 @@
 use futures_util::StreamExt;
-use serde_json::{json, Value};
-use sydney_openai::{
+use prism_openai::{
     reqwest::multipart::{Form, Part},
     BatchRequest, ChatCompletionChunk, ChatCompletionRequest, ChatMessage, Client, Config,
     EmbeddingRequest, EmbeddingVector, Error, FineTuningRequest, ImageRequest, List, Method,
     ModerationRequest, Response, ResponseRequest, SpeechRequest,
 };
+use serde_json::{json, Value};
 use wiremock::{
     matchers::{
         body_json, body_partial_json, body_string_contains, header, method, path, query_param,

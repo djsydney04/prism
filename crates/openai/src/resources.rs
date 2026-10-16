@@ -1,9 +1,9 @@
-use serde::Serialize;
-use serde_json::{json, Value};
-use sydney_ai_core::{
+use prism_ai_core::{
     reqwest::multipart::{Form, Part},
     Client, Error, EventStream, Method, Resource, Result, WebSocketSession,
 };
+use serde::Serialize;
+use serde_json::{json, Value};
 
 use crate::types::*;
 

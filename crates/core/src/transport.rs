@@ -61,7 +61,7 @@ impl Client {
             .redirect(reqwest::redirect::Policy::none())
             .timeout(config.timeout)
             .connect_timeout(Duration::from_secs(15))
-            .user_agent(concat!("sydney-ai-sdk/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("prism-ai-sdk/", env!("CARGO_PKG_VERSION")))
             .build()?;
         Ok(Self {
             inner,

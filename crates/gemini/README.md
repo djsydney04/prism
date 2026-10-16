@@ -1,22 +1,25 @@
-# sydney-gemini
+# prism-gemini
 
 Independent, unofficial asynchronous Rust bindings for Google's Gemini Developer API. Built from the official REST reference, with no dependency on another provider SDK. This crate is not affiliated with Google.
 
 ```toml
 [dependencies]
-sydney-gemini = "0.1.0"
+prism-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.2.0" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 # Add this for streaming examples:
 futures-util = "0.3"
 ```
 
+After registry publication, you can use `prism-gemini = "0.2.0"` instead.
+The versioned Git dependency works independently of crates.io publication.
+
 Set `GEMINI_API_KEY`, then:
 
 ```rust,no_run
-use sydney_gemini::{Client, GenerateContentRequest};
+use prism_gemini::{Client, GenerateContentRequest};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let response = client.models().generate_content(
         "gemini-flash-latest",
@@ -33,10 +36,10 @@ Model names are strings so new provider models do not require a crate release. B
 
 ```rust,no_run
 use futures_util::StreamExt;
-use sydney_gemini::{Client, GenerateContentRequest, GenerateContentResponse};
+use prism_gemini::{Client, GenerateContentRequest, GenerateContentResponse};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let mut stream = client.models().stream_generate_content(
         "gemini-flash-latest", &GenerateContentRequest::text("Tell a short story."),
@@ -54,10 +57,10 @@ Streams yield parsed SSE envelopes with data, event type, ID, and retry informat
 ## Stateful interactions
 
 ```rust,no_run
-use sydney_gemini::{json, Client, InteractionRequest};
+use prism_gemini::{json, Client, InteractionRequest};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let first = client.interactions().create(&InteractionRequest {
         model: Some("gemini-flash-latest".into()),
@@ -79,10 +82,10 @@ async fn main() -> sydney_gemini::Result<()> {
 ## Files and media
 
 ```rust,no_run
-use sydney_gemini::{json, Client};
+use prism_gemini::{json, Client};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let file = client.files().upload(
         &json!({"file": {"displayName": "Project notes"}}),
@@ -107,10 +110,10 @@ async fn main() -> sydney_gemini::Result<()> {
 ## Gemini Live WebSockets
 
 ```rust,no_run
-use sydney_gemini::{json, Client, LiveServerMessage};
+use prism_gemini::{json, Client, LiveServerMessage};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let mut session = client.live_connect(&json!({
         "model": "models/gemini-3.8-live",
@@ -139,10 +142,10 @@ The Live WebSocket protocol requires API keys in a `key` URL query parameter. Fo
 ## Embeddings, batches, and file search
 
 ```rust,no_run
-use sydney_gemini::{json, Client, Content, EmbedContentRequest};
+use prism_gemini::{json, Client, Content, EmbedContentRequest};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let client = Client::from_env()?;
     let embedding = client.models().embed_content("gemini-embedding-001", &EmbedContentRequest {
         content: Content::user("A document about Rust"),
@@ -169,10 +172,10 @@ Cache updates accept `updateMask`. File search store/document deletion exposes t
 
 ```rust,no_run
 use std::time::Duration;
-use sydney_gemini::{json, Client, Config, Value, DEFAULT_BASE_URL};
+use prism_gemini::{json, Client, Config, Value, DEFAULT_BASE_URL};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let config = Config::from_env(DEFAULT_BASE_URL, "GEMINI_API_KEY")?
         .timeout(Duration::from_secs(180))
         .max_retries(2)
@@ -192,10 +195,10 @@ REST authentication uses the `x-goog-api-key` header; Live uses Google's require
 For caller-managed OAuth access tokens, use `Client::with_oauth_token(token)` or `with_oauth_config`. These REST clients send bearer authentication and reject the Live query-key flow. Your application obtains and refreshes tokens and supplies the required quota project/scopes:
 
 ```rust,no_run
-use sydney_gemini::{Client, Config, DEFAULT_BASE_URL};
+use prism_gemini::{Client, Config, DEFAULT_BASE_URL};
 
 #[tokio::main]
-async fn main() -> sydney_gemini::Result<()> {
+async fn main() -> prism_gemini::Result<()> {
     let config = Config::from_env(DEFAULT_BASE_URL, "GOOGLE_OAUTH_ACCESS_TOKEN")?
         .header("x-goog-user-project", "my-google-cloud-project")?;
     let client = Client::with_oauth_config(config)?;
@@ -212,9 +215,9 @@ The [coverage matrix](https://github.com/djsydney04/rust_sdks/blob/main/docs/gem
 Offline contract tests exercise authentication, body encoding, API errors, SSE, query parameters, pagination metadata, binary upload/download, foreign-origin rejection, resource validation, named resource routes, Live and ephemeral-token handshakes, initial setup and multimodal messages. They require no credentials and incur no API charges. Passing mocks does not establish live account access, model availability, quotas, or feature-specific schema compatibility.
 
 ```sh
-cargo test -p sydney-gemini --all-targets
-cargo test -p sydney-gemini --doc
-cargo run -p sydney-gemini --example generate
+cargo test -p prism-gemini --all-targets
+cargo test -p prism-gemini --doc
+cargo run -p prism-gemini --example generate
 ```
 
 References: [Gemini API](https://ai.google.dev/api), [REST methods](https://ai.google.dev/api/all-methods), [content generation](https://ai.google.dev/api/generate-content), [interactions](https://ai.google.dev/api/interactions-api), [files](https://ai.google.dev/api/files), [file search](https://ai.google.dev/api/file-search/file-search-stores), and [Live WebSockets](https://ai.google.dev/api/live).

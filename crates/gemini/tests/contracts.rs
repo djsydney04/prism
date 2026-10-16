@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use sydney_gemini::{
+use prism_gemini::{
     json, Client, Config, Error, GenerateContentRequest, GenerateContentResponse,
     InteractionRequest, UploadSession, Value,
 };

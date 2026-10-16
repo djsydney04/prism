@@ -1,6 +1,6 @@
 use futures_util::StreamExt;
+use prism_groq::*;
 use serde_json::{json, Value};
-use sydney_groq::*;
 use wiremock::{
     matchers::{body_json, header, method, path, query_param},
     Mock, MockServer, ResponseTemplate,

@@ -10,13 +10,13 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CRATES = ("sydney-ai-core", "sydney-openai", "sydney-gemini", "sydney-groq")
+CRATES = ("prism-ai-core", "prism-openai", "prism-gemini", "prism-groq")
 
 
 def version():
     metadata = json.loads(subprocess.check_output(
         ["cargo", "metadata", "--no-deps", "--format-version", "1", "--locked"], cwd=ROOT))
-    return next(p["version"] for p in metadata["packages"] if p["name"] == "sydney-ai-core")
+    return next(p["version"] for p in metadata["packages"] if p["name"] == "prism-ai-core")
 
 
 def check(tag):
@@ -33,8 +33,8 @@ def check(tag):
         if package["version"] != expected:
             raise SystemExit(f"Version mismatch in {name}")
         for dependency in package["dependencies"]:
-            if dependency["name"] == "sydney-ai-core" and dependency["req"] != f"^{expected}":
-                raise SystemExit(f"Update the sydney-ai-core dependency in {name}")
+            if dependency["name"] == "prism-ai-core" and dependency["req"] != f"^{expected}":
+                raise SystemExit(f"Update the prism-ai-core dependency in {name}")
     print(f"Validated {tag}: {', '.join(CRATES)}")
 
 
@@ -42,7 +42,7 @@ def published(name, expected):
     # Cargo uses the authenticated registry/index configuration; no tokens in URLs.
     # Run outside the workspace: cargo info otherwise resolves local packages and
     # can incorrectly report an unpublished workspace crate as registry-available.
-    with tempfile.TemporaryDirectory(prefix="sydney-registry-check-") as registry_dir:
+    with tempfile.TemporaryDirectory(prefix="prism-registry-check-") as registry_dir:
         result = subprocess.run(["cargo", "info", f"{name}@{expected}", "--registry", "crates-io"],
                                 cwd=registry_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return result.returncode == 0

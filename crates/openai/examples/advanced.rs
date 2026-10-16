@@ -1,10 +1,10 @@
-use sydney_openai::{
+use prism_openai::{
     serde_json::{json, Value},
     BatchRequest, Client, List,
 };
 
 #[tokio::main]
-async fn main() -> sydney_openai::Result<()> {
+async fn main() -> prism_openai::Result<()> {
     let client = Client::from_env()?;
     // This read-only example lists models without creating a billable generation.
     let models: List<Value> = client.models().list(&[]).await?;

@@ -1,5 +1,5 @@
 //! Explicit opt-in tests. Generation may incur provider charges.
-use sydney_openai::{Client, ResponseRequest, Value};
+use prism_openai::{Client, ResponseRequest, Value};
 
 #[tokio::test]
 #[ignore = "requires OPENAI_API_KEY and network access"]

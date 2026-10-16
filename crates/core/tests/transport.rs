@@ -1,10 +1,10 @@
 use futures_util::StreamExt;
+use prism_ai_core::{Client, Config, Error, Method, Page};
 use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
-use sydney_ai_core::{Client, Config, Error, Method, Page};
 use wiremock::matchers::{body_json, header, method, path, query_param};
 use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 

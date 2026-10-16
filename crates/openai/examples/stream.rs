@@ -1,8 +1,8 @@
 use futures_util::StreamExt;
-use sydney_openai::{serde_json::Value, Client, ResponseRequest};
+use prism_openai::{serde_json::Value, Client, ResponseRequest};
 
 #[tokio::main]
-async fn main() -> sydney_openai::Result<()> {
+async fn main() -> prism_openai::Result<()> {
     let client = Client::from_env()?;
     let model = std::env::var("OPENAI_MODEL")
         .expect("set OPENAI_MODEL to a model available to your account");

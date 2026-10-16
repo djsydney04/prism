@@ -1,6 +1,6 @@
 # Gemini Developer API coverage
 
-Package: `sydney-gemini`; import: `sydney_gemini`. Independent implementation, unofficial and unaffiliated with Google. The default origin is `https://generativelanguage.googleapis.com`; named methods use `/v1beta/`. Based on the official reference reviewed October 15, 2026.
+Package: `prism-gemini`; import: `prism_gemini`. Independent implementation, unofficial and unaffiliated with Google. The default origin is `https://generativelanguage.googleapis.com`; named methods use `/v1beta/`. Based on the official reference reviewed October 15, 2026.
 
 ## Coverage matrix
 

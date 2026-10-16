@@ -4,8 +4,8 @@
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
+use prism_openai::{Client, Config};
 use serde_json::{json, Value};
-use sydney_openai::{Client, Config};
 use tokio::{net::TcpListener, task::JoinHandle};
 use tokio_tungstenite::{
     accept_hdr_async,

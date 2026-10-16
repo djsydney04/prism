@@ -1,10 +1,10 @@
-use sydney_openai::{
+use prism_openai::{
     serde_json::{json, Value},
     Client,
 };
 
 #[tokio::main]
-async fn main() -> sydney_openai::Result<()> {
+async fn main() -> prism_openai::Result<()> {
     let client = Client::from_env()?;
     let model = std::env::var("OPENAI_MODEL")
         .expect("set OPENAI_MODEL to a model available to your account");
@@ -28,7 +28,7 @@ async fn main() -> sydney_openai::Result<()> {
                 break;
             }
             Some("error" | "response.failed" | "response.incomplete") => {
-                return Err(sydney_openai::Error::Protocol(
+                return Err(prism_openai::Error::Protocol(
                     "response did not complete successfully".into(),
                 ));
             }
@@ -37,7 +37,7 @@ async fn main() -> sydney_openai::Result<()> {
     }
     session.close().await?;
     if !completed {
-        return Err(sydney_openai::Error::Protocol(
+        return Err(prism_openai::Error::Protocol(
             "connection closed before the response completed".into(),
         ));
     }

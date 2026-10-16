@@ -2,8 +2,8 @@
 #![allow(clippy::result_large_err)]
 
 use futures_util::{SinkExt, StreamExt};
+use prism_ai_core::{serde_json::json, Client, Config, Error, Value};
 use std::time::Duration;
-use sydney_ai_core::{serde_json::json, Client, Config, Error, Value};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio_tungstenite::{
@@ -84,7 +84,7 @@ async fn query_auth_encodes_key_and_omits_auth_headers() {
         let mut socket = accept_hdr_async(tcp, |request: &Request, response: Response| {
             assert_eq!(request.uri().path(), "/ws/live");
             let uri = format!("http://localhost{}", request.uri());
-            let url = sydney_ai_core::reqwest::Url::parse(&uri).unwrap();
+            let url = prism_ai_core::reqwest::Url::parse(&uri).unwrap();
             let pairs: Vec<_> = url.query_pairs().collect();
             assert!(pairs.iter().any(|(k, v)| k == "key" && v == "token +/=?&"));
             assert!(!request.headers().contains_key("authorization"));

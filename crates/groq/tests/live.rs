@@ -1,5 +1,5 @@
 //! Explicit opt-in tests. Generation may incur provider charges.
-use sydney_groq::{ChatRequest, Client, Message};
+use prism_groq::{ChatRequest, Client, Message};
 
 #[tokio::test]
 #[ignore = "requires GROQ_API_KEY and network access"]
