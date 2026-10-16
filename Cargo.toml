@@ -1,0 +1,26 @@
+[workspace]
+members = ["crates/core", "crates/openai", "crates/gemini", "crates/groq"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/djsydney04/rust_sdks"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "stream", "rustls-tls"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync"] }
+futures-core = "0.3"
+futures-util = "0.3"
+wiremock = "0.6"
+async-stream = "0.3"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"

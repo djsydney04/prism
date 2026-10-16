@@ -1,0 +1,29 @@
+[package]
+name = "sydney-ai-core"
+description = "Shared secure HTTP, SSE, pagination and errors for the Sydney unofficial AI SDKs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["ai", "sdk", "http", "sse"]
+categories = ["api-bindings", "web-programming::http-client"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+futures-core.workspace = true
+futures-util.workspace = true
+async-stream.workspace = true
+thiserror = "2"
+percent-encoding = "2"
+httpdate = "1"
+
+[dev-dependencies]
+wiremock.workspace = true
+
+[lints]
+workspace = true

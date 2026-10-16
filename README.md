@@ -1,0 +1,107 @@
+# Sydney Rust AI SDKs
+
+Independent, unofficial async Rust crates for OpenAI, Google's Gemini Developer
+API, and Groq. Written here from provider documentation rather than copied from
+another SDK. Not affiliated with or endorsed by these providers.
+
+| Crate | Rust import | API reference |
+|---|---|---|
+| `sydney-openai` | `sydney_openai` | [Coverage and examples](docs/openai.md) |
+| `sydney-gemini` | `sydney_gemini` | [Coverage and examples](docs/gemini.md) |
+| `sydney-groq` | `sydney_groq` | [Coverage and examples](docs/groq.md) |
+| `sydney-ai-core` | `sydney_ai_core` | Shared transport, errors, SSE, and resource operations |
+
+Requires Rust 1.88+ and a Tokio runtime. Every client is cloneable and shares its
+connection pool. The crates use Rustls; system OpenSSL is not required.
+
+## Install
+
+Versioned Git dependencies work without a crates.io release:
+
+```toml
+[dependencies]
+sydney-openai = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.1.0" }
+sydney-gemini = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.1.0" }
+sydney-groq = { git = "https://github.com/djsydney04/rust_sdks", tag = "v0.1.0" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+The registry package manifests also support normal version dependencies once
+published to crates.io. GitHub tags/releases and registry publication are separate
+steps; see [release instructions](RELEASING.md).
+
+## Use
+
+Set `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `GROQ_API_KEY` in your application's
+environment. Keys are never compiled into the libraries. Examples accept model
+names from environment variables so you control model availability and pricing.
+
+```rust,no_run
+use sydney_openai::{Client, ResponseRequest};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let model = std::env::var("OPENAI_MODEL")?;
+    let response = Client::from_env()?.responses()
+        .create(&ResponseRequest::new(model, "Hello from Rust")).await?;
+    println!("{}", response.output_text());
+    Ok(())
+}
+```
+
+For Gemini and Groq quickstarts, streaming, tools, and upload examples, see the
+provider guides above and each crate's `examples/` directory.
+
+## Coverage and API evolution
+
+Common generation APIs have typed request/response models. Extension maps preserve
+unknown fields and permit new provider parameters without a crate upgrade. Less
+common REST resources use an authenticated `Resource` handle and arbitrary
+serializable Rust types or `serde_json::Value`. The provider coverage guides
+distinguish typed methods, generic resource access, and transport limitations.
+Resource access is an escape hatch, not evidence that every server-side workflow
+has been exercised. Model IDs are unrestricted strings.
+
+```rust,no_run
+# async fn example(client: sydney_openai::Client) -> sydney_openai::Result<()> {
+let page: sydney_openai::serde_json::Value = client.models().list(&[]).await?;
+println!("{page}");
+# Ok(()) }
+```
+
+## Reliability and security
+
+- Bearer or `x-goog-api-key` headers, redacted credential debug output, HTTPS
+  enforced outside loopback test servers, redirects disabled, and same-origin
+  resumable uploads. Custom endpoints explicitly receive your configured key.
+- Structured API errors preserve status, request IDs, and original error bodies.
+  Avoid logging provider responses if your requests contain private information.
+- Bounded buffered responses (64 MiB default) and SSE events (8 MiB default).
+  Configure larger limits for large audio/file downloads.
+- Only GET/HEAD/OPTIONS are automatically retried on transient failures (two
+  retries by default). Writes, uploads, and streams never replay automatically.
+  `Retry-After` is honored up to 60 seconds per retry. Default total request
+  timeout is 120 seconds, including SSE streams; configure it for long generations.
+- Tools and model output are returned as data. Libraries never execute function
+  calls, shell commands, downloaded code, or instructions embedded in responses.
+  Applications still need their own prompt-injection defenses and tool permissions.
+- No credential discovery beyond the documented environment variables, no dotenv
+  loading, no telemetry, no generated SDK dependency, and `unsafe` forbidden in our code.
+
+## Verify
+
+```sh
+cargo fmt --all --check
+cargo test --workspace --all-targets --locked
+cargo test --workspace --doc --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo doc --workspace --no-deps --locked
+```
+
+Tests use local mock HTTP servers and protocol fixtures; provider credentials
+are unnecessary. They check request paths, verbs, headers, bodies, binary uploads,
+SSE framing, extensions, error handling, retry behavior, and URL security. Live
+provider examples are opt-in and may incur charges. Passing mock tests does not
+establish live service availability or access to beta features.
+
+Licensed under MIT OR Apache-2.0.

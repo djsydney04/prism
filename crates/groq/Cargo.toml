@@ -1,0 +1,21 @@
+[package]
+name = "sydney-groq"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Independent async Rust SDK for Groq's inference REST API"
+readme = "README.md"
+keywords = ["groq", "ai", "sdk", "llm", "async"]
+categories = ["api-bindings", "asynchronous"]
+
+[dependencies]
+sydney-ai-core = { path = "../core", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+wiremock.workspace = true
+futures-util.workspace = true
