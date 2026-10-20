@@ -348,10 +348,15 @@ def smoke():
                   "check_rust again to confirm tests pass. Do not change Cargo.toml or "
                   "system-settings.json. Finish with a short factual result.")
         result = subprocess.run(
-            ["gemini", "--model", "gemini-3.8-flash", "--approval-mode", "yolo",
+            ["gemini", "--model", "gemini-3.8-flash", "--skip-trust", "--approval-mode", "yolo",
              "--output-format", "stream-json", "--prompt", prompt],
             cwd=source, env=environment, capture_output=True, text=True, timeout=300, check=False)
         if result.returncode:
+            diagnostic = (result.stdout + result.stderr)[-3000:]
+            for key, value in environment.items():
+                if value and any(secret in key.upper() for secret in ("KEY", "TOKEN", "SECRET", "PASSWORD")):
+                    diagnostic = diagnostic.replace(value, "[redacted]")
+            print(diagnostic)
             raise ValueError(f"Live Gemini smoke test failed (exit {result.returncode}); check key, model access and free quota")
         events = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
         check_calls = [event for event in events if event.get("type") == "tool_use"

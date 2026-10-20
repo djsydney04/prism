@@ -40,6 +40,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python3 scripts/sdk-maintenance.py smoke --artifacts "$RUNNER_TEMP/smoke"
   checks:
+    if: ${{ !inputs.maintenance_smoke }}
     name: Checks (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -62,6 +63,7 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
   msrv:
+    if: ${{ !inputs.maintenance_smoke }}
     name: Rust 1.88 minimum
     runs-on: ubuntu-latest
     steps:
@@ -72,6 +74,7 @@ jobs:
       - run: rustup toolchain install 1.88.0 --profile minimal
       - run: cargo +1.88.0 check --workspace --all-targets --locked
   package:
+    if: ${{ !inputs.maintenance_smoke }}
     name: Verify crate packages
     runs-on: ubuntu-latest
     steps:
@@ -83,6 +86,7 @@ jobs:
       - run: rustup default stable
       - run: python3 scripts/verify-packages.py
   audit:
+    if: ${{ !inputs.maintenance_smoke }}
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
@@ -95,6 +99,7 @@ jobs:
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: cargo audit --deny warnings
   release-tooling:
+    if: ${{ !inputs.maintenance_smoke }}
     name: Release tooling tests
     runs-on: ubuntu-latest
     steps:

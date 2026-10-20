@@ -72,7 +72,7 @@ jobs:
         run: |
           status=0
           timeout --kill-after=30s 20m gemini --model gemini-3.8-flash \
-            --approval-mode yolo --output-format json \
+            --skip-trust --approval-mode yolo --output-format json \
             --prompt 'Perform the maintenance task supplied on standard input.' \
             < "$RUNNER_TEMP/proposal/brief.md" \
             > "$RUNNER_TEMP/gemini-result.json" 2> "$RUNNER_TEMP/gemini-stderr.log" || status=$?
