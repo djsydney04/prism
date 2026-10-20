@@ -1,0 +1,22 @@
+{
+  "model": { "name": "gemini-3.8-flash", "maxSessionTurns": 16 },
+  "security": {
+    "auth": { "selectedType": "gemini-api-key", "enforcedType": "gemini-api-key" },
+    "folderTrust": { "enabled": false }
+  },
+  "tools": {
+    "core": ["read_file", "read_many_files", "list_directory", "glob", "grep_search", "write_file", "replace", "web_fetch"],
+    "exclude": ["run_shell_command", "google_web_search", "save_memory"]
+  },
+  "mcpServers": {
+    "prism_checks": {
+      "command": "python3",
+      "args": ["${MAINTENANCE_AUTOMATION_ROOT}/scripts/maintenance-checks.py"],
+      "env": { "GEMINI_API_KEY": "", "GH_TOKEN": "", "GITHUB_TOKEN": "" }
+    }
+  },
+  "experimental": { "enableAgents": false, "extensionManagement": false },
+  "advanced": { "ignoreLocalEnv": true },
+  "telemetry": { "enabled": false },
+  "privacy": { "usageStatisticsEnabled": false }
+}

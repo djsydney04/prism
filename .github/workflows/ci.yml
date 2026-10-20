@@ -4,6 +4,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      maintenance_smoke:
+        description: Test the maintenance coding agent with the free-tier Gemini key
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       ref:
@@ -13,6 +19,26 @@ on:
 permissions:
   contents: read
 jobs:
+  maintenance-smoke:
+    if: github.event_name == 'workflow_dispatch' && inputs.maintenance_smoke && github.repository == 'djsydney04/prism'
+    name: Maintenance agent live smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: npm install --global @google/gemini-cli@0.65.0
+      - run: rustup toolchain install stable --profile minimal
+      - run: rustup default stable
+      - run: rustup component add rustfmt clippy
+      - name: Exercise real inference, editing and iterative Rust checks
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/sdk-maintenance.py smoke --artifacts "$RUNNER_TEMP/smoke"
   checks:
     name: Checks (${{ matrix.os }})
     strategy:
