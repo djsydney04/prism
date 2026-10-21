@@ -18,7 +18,24 @@ and pins both the reusable workflow and implementation to the same exact commit.
 | `openai` | `gpt-5.4` | `OPENAI_API_KEY` |
 | `anthropic` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
 
-Prism defaults to Groq. To use OpenAI, change the YAML agent section:
+Prism explicitly pins Groq with
+[GPT OSS 120B](https://console.groq.com/docs/model/openai/gpt-oss-120b) in its YAML
+agent section:
+
+```yaml
+agent:
+  provider: groq
+  model: openai/gpt-oss-120b
+  allow_paid: false
+  max_requests: 16
+```
+
+Scheduled runs and manual runs without overrides use this exact pair and the
+`GROQ_API_KEY` secret. The Groq repair diagnostic also pins
+`openai/gpt-oss-120b` when its model input is blank. Another provider or model
+requires an explicit configuration change or manual override.
+
+To use OpenAI, change the YAML agent section:
 
 ```yaml
 agent:

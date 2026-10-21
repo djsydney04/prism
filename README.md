@@ -32,7 +32,8 @@ Registry publication runs through GitHub Actions; see
 [release instructions](RELEASING.md).
 
 [Weekly cloud maintenance](docs/maintenance.md) checks provider docs and proposes
-tested SDK updates through PRs using Gemini Flash's free API tier.
+tested SDK updates through PRs using Groq's GPT OSS 120B model
+(`openai/gpt-oss-120b`).
 
 ## Use
 

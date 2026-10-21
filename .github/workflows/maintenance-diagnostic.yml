@@ -8,7 +8,7 @@ on:
         default: groq
         options: [groq, google, openai, anthropic]
       model:
-        description: Optional model ID (blank uses the provider default)
+        description: Optional model ID; Groq defaults to openai/gpt-oss-120b
         type: string
         default: ''
       allow_paid:
@@ -23,7 +23,7 @@ jobs:
     with:
       maintainer_ref: 610da64180574028e70273ce55b7495fb7908b41
       provider: ${{ inputs.provider }}
-      model: ${{ inputs.model }}
+      model: ${{ inputs.model || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
       allow_paid: ${{ inputs.allow_paid }}
     secrets:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
