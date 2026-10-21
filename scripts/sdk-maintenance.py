@@ -334,7 +334,7 @@ def smoke():
     if not os.environ.get("GEMINI_API_KEY"):
         raise ValueError("Add the GEMINI_API_KEY Actions secret before the live smoke test")
     model = os.environ.get("SMOKE_MODEL") or "gemini-3.8-flash"
-    if model not in {"gemini-3.8-flash", "gemini-3.6-flash"}:
+    if model not in {"gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"}:
         raise ValueError("Select a supported free-tier diagnostic model")
     automation = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix="prism-agent-smoke-") as temporary:
@@ -343,9 +343,15 @@ def smoke():
         (source / "Cargo.toml").write_text(
             '[package]\nname = "prism-ai-core"\nversion = "0.0.0"\nedition = "2021"\n')
         (source / "src/lib.rs").write_text(
-            'pub fn answer() -> u32 { 1 }\n'
-            '#[test]\nfn contract() { assert_eq!(answer(), 2); }\n')
+            'pub fn answer() -> u32 {\n    1\n}\n\n'
+            '#[test]\nfn contract() {\n    assert_eq!(answer(), 2);\n}\n')
         run("cargo", "generate-lockfile", "--offline", cwd=source)
+        check_environment = {key: value for key, value in os.environ.items()
+                             if not any(secret in key.upper() for secret in ("KEY", "TOKEN", "SECRET", "PASSWORD"))}
+        baseline = subprocess.run(["cargo", "test", "--locked", "--offline"], cwd=source,
+                                  env=check_environment, capture_output=True, text=True, check=False)
+        if "test contract ... FAILED" not in baseline.stdout:
+            raise ValueError("The diagnostic fixture did not exhibit its expected assertion failure")
         settings = json.loads((automation / ".github/maintenance/gemini-settings.json").read_text())
         settings["model"]["name"] = model
         settings["model"]["maxSessionTurns"] = 8
@@ -360,11 +366,12 @@ def smoke():
                        if key not in {"GH_TOKEN", "GITHUB_TOKEN"}}
         environment["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = "/etc/gemini-cli/settings.json"
         environment["MAINTENANCE_AUTOMATION_ROOT"] = str(automation)
-        prompt = ("This is a disposable Rust fixture. Inspect src/lib.rs, use check_rust "
-                  "from prism_checks to observe the failing tests, fix answer() to satisfy "
-                  "the existing test without changing the test, format the file, and use "
-                  "check_rust again to confirm tests pass. Do not change Cargo.toml or "
-                  "system-settings.json. Finish with a short factual result.")
+        prompt = ("This disposable Rust fixture has already failed its contract test. "
+                  "Inspect src/lib.rs, fix answer() without changing the test or formatting, "
+                  "and call check_rust from prism_checks with check=tests to confirm it "
+                  "passes. Do not change Cargo.toml or system-settings.json. "
+                  "Use at most four tool calls and finish with a short factual result.\n\n"
+                  + baseline.stdout[-3000:])
         try:
             result = subprocess.run(
                 ["gemini", "--model", model, "--skip-trust", "--approval-mode", "yolo",
@@ -377,16 +384,23 @@ def smoke():
             print(redacted_diagnostic(result.stdout + result.stderr, environment))
             raise ValueError(f"Live Gemini smoke test failed (exit {result.returncode}); check key, model access and free quota")
         events = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
-        check_calls = [event for event in events if event.get("type") == "tool_use"
-                       and "check_rust" in json.dumps(event)]
-        if len(check_calls) < 2:
+        check_calls = {event["tool_id"] for event in events if event.get("type") == "tool_use"
+                       and "check_rust" in event.get("tool_name", "")
+                       and event.get("parameters", {}).get("check") == "tests"}
+        passed = any(event.get("type") == "tool_result" and event.get("tool_id") in check_calls
+                     and event.get("status") == "success" and "Exit code: 0" in event.get("output", "")
+                     for event in events)
+        if not passed:
             print(redacted_diagnostic(result.stdout + result.stderr, environment))
             raise ValueError("The agent did not demonstrate a test-and-repair loop")
         text = (source / "src/lib.rs").read_text()
         if "assert_eq!(answer(), 2)" not in text:
             raise ValueError("The agent changed the fixture's expected behavior")
+        (source / "tests").mkdir(exist_ok=True)
+        (source / "tests/independent_contract.rs").write_text(
+            '#[test]\nfn verifies_answer() { assert_eq!(prism_ai_core::answer(), 2); }\n')
         subprocess.run(["cargo", "test", "--locked", "--offline"], cwd=source,
-                       env={key: value for key, value in environment.items() if key != "GEMINI_API_KEY"}, check=True)
+                       env=check_environment, check=True)
         print(f"Live {model} authentication, file editing and MCP test/repair loop passed.")
 
 
