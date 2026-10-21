@@ -31,6 +31,10 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 Registry publication runs through GitHub Actions; see
 [release instructions](RELEASING.md).
 
+[Weekly cloud maintenance](docs/maintenance.md) checks provider docs and proposes
+tested SDK updates through PRs using Groq's GPT OSS 120B model
+(`openai/gpt-oss-120b`).
+
 ## Use
 
 Set `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `GROQ_API_KEY` in your application's

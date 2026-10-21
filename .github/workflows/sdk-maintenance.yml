@@ -1,0 +1,43 @@
+name: Weekly SDK maintenance
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Optional provider override (google, groq, openai or anthropic)
+        type: string
+        default: ''
+      model:
+        description: Optional model override
+        type: string
+        default: ''
+      allow_paid:
+        description: Explicitly allow a paid provider for this run
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  maintain:
+    if: github.repository == 'djsydney04/prism' && github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    uses: djsydney04/repo_maintainer/.github/workflows/maintain.yml@610da64180574028e70273ce55b7495fb7908b41
+    with:
+      maintainer_ref: 610da64180574028e70273ce55b7495fb7908b41
+      owner: djsydney04
+      config_path: .maintainer.yml
+      allow_paid: ${{ inputs.allow_paid }}
+      provider: ${{ inputs.provider }}
+      model: ${{ inputs.model }}
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
