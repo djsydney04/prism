@@ -18,7 +18,10 @@ futures-core = "0.3"
 futures-util = "0.3"
 wiremock = "0.6"
 async-stream = "0.3"
-tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
+# Supply current WebPKI roots explicitly instead of the upstream 0.26 wrapper.
+tokio-tungstenite = { version = "0.30", features = ["__rustls-tls"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+webpki-roots = "1.0.10"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
