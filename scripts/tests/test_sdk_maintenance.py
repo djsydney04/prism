@@ -143,6 +143,11 @@ class ProposalTests(unittest.TestCase):
 
 
 class ReportTests(unittest.TestCase):
+    def test_diagnostics_redact_credentials_before_truncating(self):
+        result = maintenance.redacted_diagnostic("prefix api-key-value suffix", {"GEMINI_API_KEY": "api-key-value"})
+        self.assertNotIn("api-key-value", result)
+        self.assertIn("[redacted]", result)
+
     def test_changes_need_official_evidence(self):
         for sources in ([], ["https://example.com/fake"], ["http://ai.google.dev/api"],
                         ["https://ai.google.dev.evil.invalid/"]):
