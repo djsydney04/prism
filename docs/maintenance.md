@@ -86,7 +86,8 @@ repository's own GitHub plan and applicable limits.
 
 For authentication, quota or failed checks, inspect the linked run, repair the
 configuration or proposal, and rerun the workflow. Raw model logs are not
-uploaded. Live credentialed provider conformance tests are never run by this job.
+uploaded as artifacts; failed diagnostics print a redacted excerpt.
+Live credentialed provider conformance tests are never run by this job.
 
 The local orchestration tests require no model key:
 

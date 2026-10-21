@@ -380,6 +380,7 @@ def smoke():
         check_calls = [event for event in events if event.get("type") == "tool_use"
                        and "check_rust" in json.dumps(event)]
         if len(check_calls) < 2:
+            print(redacted_diagnostic(result.stdout + result.stderr, environment))
             raise ValueError("The agent did not demonstrate a test-and-repair loop")
         text = (source / "src/lib.rs").read_text()
         if "assert_eq!(answer(), 2)" not in text:
