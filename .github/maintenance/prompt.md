@@ -3,7 +3,7 @@ Maintain Prism's independent Rust SDKs for OpenAI, Gemini Developer API and Groq
 Read applicable AGENTS.md instructions, README.md, docs/openai.md,
 docs/gemini.md and docs/groq.md. Compare the current implementation with the
 official documentation extracts below. Inspect relevant source, examples and
-contract tests. When necessary, use web_fetch to read a specific official
+contract tests. When necessary, use reference to read a specific official
 reference on developers.openai.com, platform.openai.com, ai.google.dev or
 console.groq.com. Do not use paid search grounding or third-party SDK source.
 
@@ -23,10 +23,9 @@ or JSON source/test/example files under crates/. Do not change Cargo manifests,
 lockfiles, dependencies, workflows, automation, scripts, release files or secrets.
 Ask for help with breaking changes or work outside these boundaries.
 
-You have file editing and reference tools, plus check_rust from the prism_checks
-server. Use check_rust to run offline formatting, contract tests or Clippy, inspect
-failures and repair the edits before finishing. You have 16 conversational turns;
-batch related reads and work efficiently. General shell execution, subagents and
+You have file editing and reference tools, plus check_rust. Use check_rust to run offline formatting, contract tests or Clippy, inspect
+failures and repair the edits before finishing. You have at most 16 model requests, including context summaries;
+batch related reads and work efficiently. With Groq, read short file ranges and narrow searches to stay within the smaller free token budget. General shell execution, subagents and
 GitHub writes are not available. A separate job runs format checks, workspace tests/doctests, Clippy,
 rustdoc, the minimum-Rust check, crate packaging and dependency audit. Only claim
 checks that check_rust actually ran. Finish edits before returning your final response.

@@ -4,189 +4,32 @@ on:
     - cron: '0 9 * * 1'
       timezone: America/Los_Angeles
   workflow_dispatch:
+    inputs:
+      provider:
+        description: Optional provider override (google or groq)
+        type: string
+        default: ''
+      model:
+        description: Optional model override
+        type: string
+        default: ''
 permissions:
   contents: read
-concurrency:
-  group: weekly-sdk-maintenance
-  cancel-in-progress: false
-env:
-  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-  MAINTENANCE_OWNER: djsydney04
-  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 jobs:
-  propose:
+  maintain:
     if: github.repository == 'djsydney04/prism' && github.ref_name == github.event.repository.default_branch
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: read
-    outputs:
-      sha: ${{ steps.prepare.outputs.sha }}
-      status: ${{ steps.collect.outputs.status }}
-    steps:
-      - name: Check free-tier credential
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo '::error::Add GEMINI_API_KEY from a Google AI Studio project without billing.'
-            exit 1
-          fi
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          path: automation
-          persist-credentials: false
-      - name: Read official docs and existing maintenance feedback
-        id: prepare
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          python3 automation/scripts/sdk-maintenance.py prepare
-          --artifacts "$RUNNER_TEMP/proposal"
-          --prompt automation/.github/maintenance/prompt.md
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        id: source
-        with:
-          ref: ${{ steps.prepare.outputs.sha }}
-          path: source
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: '24'
-      - name: Install the coding agent and Rust check tools
-        run: |
-          npm install --global @google/gemini-cli@0.65.0
-          rustup toolchain install stable --profile minimal
-          rustup default stable
-          rustup component add rustfmt clippy
-          cargo fetch --manifest-path source/Cargo.toml --locked
-          sudo install -d -o root -g root -m 755 /etc/gemini-cli
-          sudo install -o root -g root -m 644 automation/.github/maintenance/gemini-settings.json /etc/gemini-cli/settings.json
-      - name: Inspect, edit, test and repair using Gemini Flash
-        id: agent
-        working-directory: source
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_CLI_SYSTEM_SETTINGS_PATH: /etc/gemini-cli/settings.json
-          MAINTENANCE_AUTOMATION_ROOT: ${{ github.workspace }}/automation
-        run: |
-          status=0
-          timeout --kill-after=30s 20m gemini --model gemini-3.8-flash \
-            --skip-trust --approval-mode yolo --output-format json \
-            --prompt 'Perform the maintenance task supplied on standard input.' \
-            < "$RUNNER_TEMP/proposal/brief.md" \
-            > "$RUNNER_TEMP/gemini-result.json" 2> "$RUNNER_TEMP/gemini-stderr.log" || status=$?
-          echo "exit-code=$status" >> "$GITHUB_OUTPUT"
-      - name: Verify the proposal boundary and structured result
-        id: collect
-        if: always() && steps.agent.outcome == 'success'
-        env:
-          AGENT_EXIT_CODE: ${{ steps.agent.outputs.exit-code }}
-        run: >-
-          python3 automation/scripts/sdk-maintenance.py collect
-          --source source --artifacts "$RUNNER_TEMP/proposal"
-          --raw "$RUNNER_TEMP/gemini-result.json" --exit-code "$AGENT_EXIT_CODE"
-      - name: Retain completed or partial proposals
-        if: always() && steps.prepare.outcome == 'success'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: sdk-maintenance-proposal
-          path: |
-            ${{ runner.temp }}/proposal/request.json
-            ${{ runner.temp }}/proposal/report.json
-            ${{ runner.temp }}/proposal/proposal.patch
-          retention-days: 30
-          if-no-files-found: error
-  validate:
-    needs: propose
-    if: needs.propose.outputs.status == 'changed'
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          path: automation
-          persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.propose.outputs.sha }}
-          path: source
-          persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: sdk-maintenance-proposal
-          path: ${{ runner.temp }}/proposal
-      - run: python3 automation/scripts/sdk-maintenance.py apply --source source --artifacts "$RUNNER_TEMP/proposal"
-      - name: Install validation tools
-        run: |
-          rustup toolchain install stable 1.88.0 --profile minimal
-          rustup default stable
-          rustup component add rustfmt clippy
-          cargo install cargo-audit --version 0.22.2 --locked
-      - name: Run the Linux CI checks against the proposed changes
-        working-directory: source
-        env:
-          RUSTDOCFLAGS: -D warnings
-        run: |
-          cargo fmt --all --check
-          cargo test --workspace --all-targets --locked
-          cargo test --workspace --doc --locked
-          cargo clippy --workspace --all-targets --locked -- -D warnings
-          cargo doc --workspace --no-deps --locked
-          cargo +1.88.0 check --workspace --all-targets --locked
-          python3 scripts/verify-packages.py
-          cargo audit --deny warnings
-  publish:
-    needs: [propose, validate]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: write
       pull-requests: write
       issues: write
       actions: write
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          path: automation
-          persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.propose.outputs.sha }}
-          path: source
-          persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: sdk-maintenance-proposal
-          path: ${{ runner.temp }}/proposal
-      - name: Open or update a PR and dispatch full CI
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 automation/scripts/sdk-maintenance.py publish --source source --artifacts "$RUNNER_TEMP/proposal"
-  notify:
-    needs: [propose, validate, publish]
-    if: always() && github.repository == 'djsydney04/prism' && github.ref_name == github.event.repository.default_branch
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - name: Read the report if one was produced
-        continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: sdk-maintenance-proposal
-          path: ${{ runner.temp }}/proposal
-      - name: Notify only for a new blocker or a recovered run
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PROPOSE_RESULT: ${{ needs.propose.result }}
-          VALIDATE_RESULT: ${{ needs.validate.result }}
-          PUBLISH_RESULT: ${{ needs.publish.result }}
-        run: python3 scripts/sdk-maintenance.py notify --artifacts "$RUNNER_TEMP/proposal"
+    uses: djsydney04/repo_maintainer/.github/workflows/maintain.yml@5e050beb60a575e7a5e5d7aa20efa146df6feda1
+    with:
+      maintainer_ref: 5e050beb60a575e7a5e5d7aa20efa146df6feda1
+      owner: djsydney04
+      provider: ${{ inputs.provider || vars.SDK_MAINTENANCE_PROVIDER || 'google' }}
+      model: ${{ inputs.model || vars.SDK_MAINTENANCE_MODEL }}
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}

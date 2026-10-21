@@ -6,19 +6,23 @@ on:
   workflow_dispatch:
     inputs:
       maintenance_smoke:
-        description: Test the maintenance coding agent with the free-tier Gemini key
+        description: Test Pi with the selected provider in a disposable Rust fixture
         required: false
         default: false
         type: boolean
-      maintenance_smoke_model:
-        description: Free-tier model for the optional live diagnostic
+      maintenance_smoke_provider:
+        description: Provider for the optional live diagnostic
         required: false
-        default: gemini-3.8-flash
+        default: google
         type: choice
         options:
-          - gemini-3.8-flash
-          - gemini-3.6-flash
-          - gemini-3.5-flash-lite
+          - google
+          - groq
+      maintenance_smoke_model:
+        description: Model for the optional diagnostic (blank uses provider default)
+        required: false
+        default: ''
+        type: string
   workflow_call:
     inputs:
       ref:
@@ -31,24 +35,15 @@ jobs:
   maintenance-smoke:
     if: github.event_name == 'workflow_dispatch' && inputs.maintenance_smoke && github.repository == 'djsydney04/prism'
     name: Maintenance agent live smoke test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: '24'
-      - run: npm install --global @google/gemini-cli@0.65.0
-      - run: rustup toolchain install stable --profile minimal
-      - run: rustup default stable
-      - run: rustup component add rustfmt clippy
-      - name: Exercise real inference, editing and iterative Rust checks
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SMOKE_MODEL: ${{ inputs.maintenance_smoke_model }}
-        run: python3 scripts/sdk-maintenance.py smoke --artifacts "$RUNNER_TEMP/smoke"
+    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@5e050beb60a575e7a5e5d7aa20efa146df6feda1
+    with:
+      maintainer_ref: 5e050beb60a575e7a5e5d7aa20efa146df6feda1
+      provider: ${{ inputs.maintenance_smoke_provider }}
+      model: ${{ inputs.maintenance_smoke_model }}
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}
   checks:
     if: ${{ !inputs.maintenance_smoke }}
     name: Checks (${{ matrix.os }})

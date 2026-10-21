@@ -1,101 +1,93 @@
 # Weekly cloud SDK maintenance
 
-[Weekly SDK maintenance](../.github/workflows/sdk-maintenance.yml) runs on
-GitHub-hosted Linux every Monday at **09:00 America/Los_Angeles**, including DST.
-It can also be started manually from GitHub Actions. Your computer can be off.
-GitHub schedules can be delayed; this is not a precise delivery-time guarantee.
+Prism calls the reusable [repo_maintainer](https://github.com/djsydney04/repo_maintainer)
+workflow every Monday at **09:00 America/Los_Angeles**, including DST. It runs on
+GitHub-hosted Linux while your computer is off. Schedules can be delayed.
 
-## Enable it
+The shared repository owns the Pi coding agent, provider adapters, checks,
+proposal transfer, PR publishing and blocker notifications. Prism owns its
+[weekly caller](../.github/workflows/sdk-maintenance.yml),
+[configuration](../.github/maintainer.json), and
+[maintenance instructions](../.github/maintenance/prompt.md). Both shared-workflow
+references are pinned to the same commit, so changes in the shared repository
+only take effect here after a reviewed pin update.
 
-1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/api-keys)
-   using a project **without billing enabled**. Check that the project has free
-   quota for `gemini-3.8-flash` in its
-   [active limits](https://ai.google.dev/gemini-api/docs/rate-limits).
-2. Add the key as the repository Actions secret **`GEMINI_API_KEY`**. Never commit
-   it or paste it in issues, PRs or workflow inputs.
-3. In Settings → Actions → General → Workflow permissions, enable **Allow GitHub
-   Actions to create and approve pull requests**. The workflow only creates PRs;
-   it does not approve or merge them.
-4. Merge the setup PR, then run **Weekly SDK maintenance** manually once and
-   review its results before relying on the schedule. Once the cloud run works,
-   pause the duplicate local Codex automation.
+## Enable or switch providers
 
-For a small live diagnostic, manually run **CI** with **maintenance_smoke**
-enabled. This uses the secret to test an intentionally failing disposable Rust
-fixture: the harness records the failure, the agent edits the implementation and
-uses its check tool to rerun the tests, then an independent assertion verifies
-the result. It cannot publish repository changes. The diagnostic model defaults
-to 3.8 Flash; 3.6 Flash or 3.5 Flash-Lite can be chosen explicitly when free quota
-is unavailable. This does not change the weekly model.
+Add the selected provider's key in Prism's **Settings → Secrets and variables →
+Actions → Secrets**. Keep the key out of code, workflow inputs, issues and chat.
+Set the following repository **Variables** to choose inference:
 
-The workflow uses the short-lived repository `GITHUB_TOKEN` for PRs and issues;
-it needs no personal access token. The inference job has read access to GitHub.
-The publish job gets write access only after independent validation succeeds.
-Ordinary PR workflows do not start from `GITHUB_TOKEN` writes, so the publisher
-explicitly dispatches the existing cross-platform CI workflow for the PR branch.
-
-## Model and agent choice
-
-The model is **Gemini 3.8 Flash**; the coding agent is **Gemini CLI 0.65.0**.
-They are different components: the model reasons about changes, while the agent
-reads and edits files, fetches references and iterates on check results. Codex is
-not required. Pi or another provider-neutral coding agent could also be used,
-but changing the agent alone does not establish better coding quality. This
-setup uses Google's own maintained agent and its native API authentication.
-
-Free API options reviewed **2026-10-20**:
-
-| Provider | Free-tier evidence | Fit for this job |
+| Provider variable `SDK_MAINTENANCE_PROVIDER` | Model variable `SDK_MAINTENANCE_MODEL` | Secret |
 | --- | --- | --- |
-| Gemini | [3.8 Flash has free input/output](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.8-flash), [1M input context and function calling](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash); active quota is project specific | Selected for repository context, documented agentic coding support and a native coding agent |
-| Groq | [GPT-OSS 120B: 30 RPM, 1,000 requests/day, 8,000 tokens/minute, 200,000 tokens/day](https://console.groq.com/docs/rate-limits) | Usable with another agent, but the token-per-minute budget constrains repository-sized prompts |
-| Mistral | [Free API mode, no card required](https://docs.mistral.ai/getting-started/quickstarts/studio/activate-and-generate-api-key); model access and limits depend on the account | An alternative after checking the account's coding-model quota |
-| Cerebras | [Current offer is a one-time $5 credit expiring after 30 days](https://www.cerebras.ai/pricing) | Not an ongoing free-tier choice for this schedule |
+| `groq` | `openai/gpt-oss-120b` (provider default) or `qwen/qwen3.8-27b` | `GROQ_API_KEY` |
+| `google` | `gemini-3.8-flash` (provider default), `gemini-3.6-flash`, or `gemini-3.5-flash-lite` | `GEMINI_API_KEY` |
 
-This is a practical starting choice, not a benchmark proving the strongest
-coding model. Account quota, availability and terms can change. Google's free
-tier [may use submitted content to improve its products](https://ai.google.dev/gemini-api/docs/pricing).
-Only this public repository and public provider references are needed here.
+The workflow falls back to `google` when the provider variable is unset. Leave
+the model variable unset to use the selected provider's default. A manual run
+can override either setting. Change provider and model together.
 
-## Run behavior
+To replace a key, update its named secret. Alternatively, set the optional
+`SDK_MAINTENANCE_API_KEY` secret; it overrides the named key for the selected
+provider. Delete that override to resume using provider-specific secrets.
+No key has to be stored in the shared repository.
 
-- Read the latest official references/changelogs for OpenAI, Gemini and Groq,
-  current source and guides, and any existing maintenance PR's review/CI feedback.
-- Use a maximum of 16 agent turns and a 20-minute agent deadline. The agent can
-  read/edit files and fetch specific official references. Its `check_rust` tool
-  runs bounded offline format/test/Clippy commands so it can repair failures.
-  Arbitrary shell commands, paid search grounding and subagents are disabled.
-- Recheck the exported patch in a separate job, then run Linux CI: formatting,
-  workspace tests and doctests, Clippy, rustdoc, Rust 1.88, package verification
-  and dependency audit. Failed or incomplete work cannot reach the publisher.
-- Open one maintenance PR on a `dylan/sdk-maintenance-…` branch, assigned to
-  `djsydney04`, or update the existing one. Never force push, merge or release.
-- Only SDK Rust/JSON files, crate Markdown, root README and provider Markdown
-  guides can change automatically. Dependencies, release files and automation
-  require human help. Each proposal is limited to 25 files and 500 KB.
-- Preserve partial work in the run's proposal artifact for 30 days. A new blocker
-  creates or updates one assigned **SDK maintenance needs help** issue with an
-  `@djsydney04` mention; an unchanged blocker produces no repeated mention. A
-  later successful run closes the issue. Enable GitHub assignment/mention
-  notifications for delivery. Successful runs without changes stay quiet.
+Use an **unbilled Google AI Studio project** or a **Groq free-plan organization**
+for free-only inference. Pi does not change provider quotas. Another key in the
+same Google project or Groq organization shares the existing quota. There is
+no automatic key rotation, provider fallback or paid fallback.
 
-There is **no automatic paid model fallback**. Keeping the AI Studio project
-unbilled is what enforces free-only inference; a key from a billed project can
-incur charges even for this same model. Rate limits produce a blocked run rather
-than switching providers. GitHub Actions runner/storage usage follows the
-repository's own GitHub plan and applicable limits.
+During setup, Gemini 3.8 Flash returned a **20-request daily model limit**.
+[Google's actual quotas depend on the project/model](https://ai.google.dev/gemini-api/docs/rate-limits).
+[Groq's published free limits](https://console.groq.com/docs/rate-limits) for
+GPT-OSS 120B are **1,000 requests/day, 8K tokens/minute and 200K tokens/day**;
+account limits can differ. Groq therefore has more daily requests but a tighter
+context budget. Neither free tier guarantees a complex maintenance task will fit.
 
-For authentication, quota or failed checks, inspect the linked run, repair the
-configuration or proposal, and rerun the workflow. Raw model logs are not
-uploaded as artifacts; failed diagnostics print a redacted excerpt.
-Live credentialed provider conformance tests are never run by this job.
+Enable **Allow GitHub Actions to create and approve pull requests** in Prism's
+Actions settings. The bot creates PRs; it never approves or merges them. Merge
+the setup PR to activate the schedule, manually run **Weekly SDK maintenance**
+once, and review its outcome. The duplicate local Codex schedule retires on its
+next check after the cloud caller is merged.
 
-The local orchestration tests require no model key:
+## Behavior and review
 
-```sh
-python3 -m unittest discover -s scripts/tests -v
-```
+- Read current official OpenAI, Gemini and Groq docs, source/guides, and existing
+  maintenance PR feedback. Make focused changes only when evidence supports them.
+- Use **Pi 1.3.0** with explicit read/edit/reference tools and fixed offline Rust
+  checks. General shell commands, repository extensions and subagents are disabled.
+  Provider keys are removed from the process environment before source tools run.
+- Limit inference to 16 requests, including summaries, and a 20-minute deadline.
+  Groq uses shorter excerpts, small file pages, compaction and 61-second request
+  pacing. Google requests are paced 13 seconds apart. Oversized or incomplete
+  work stops with a blocker; the partial patch is preserved.
+- Validate the exact patch on a fresh runner: formatting, workspace tests and
+  doctests, Clippy, rustdoc, Rust 1.88, package verification and dependency audit.
+  A separate job gets write access only after validation succeeds.
+- Open or update one PR on a `dylan/sdk-maintenance-…` branch, assigned to
+  `djsydney04`, then explicitly dispatch cross-platform CI. No force pushes,
+  merges, releases or live provider conformance tests.
+- Limit edits to the configured SDK source, tests, examples and guides, at most
+  25 regular files and 500 KB. Dependencies, automation and release files require
+  human help.
+- Keep completed/partial proposal artifacts for 30 days. New blockers create or
+  update one assigned **SDK maintenance needs help** issue with an owner mention.
+  Unchanged blockers and successful no-ops stay quiet. A later success closes the
+  blocker issue. Enable GitHub assignment/mention notifications for delivery.
 
-References: [Gemini CLI headless mode](https://geminicli.com/docs/cli/headless/),
-[Gemini CLI configuration](https://geminicli.com/docs/reference/configuration/),
-[GitHub schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+GitHub Actions runner and artifact usage follows Prism's GitHub plan. A provider
+key from a billed account can incur charges; the workflow itself cannot enforce
+that account's billing tier.
+
+## Live diagnostic
+
+Run **CI** manually with `maintenance_smoke` enabled, choose `google` or `groq`,
+and optionally enter an allowed model ID. The diagnostic also calls the pinned
+shared repository, using Prism's secrets. It asks Pi to repair a deliberately
+failing disposable Rust fixture and run tests, then checks an independent
+assertion. It cannot publish repository changes. It allows six model requests
+and an eight-minute agent deadline. `gemini-3.5-flash-lite` can be chosen to test
+Google without consuming the weekly 3.8 Flash quota.
+
+Raw model logs are not uploaded. Failed diagnostics show a redacted excerpt.
+Shared runner tests live in [repo_maintainer](https://github.com/djsydney04/repo_maintainer/actions).
