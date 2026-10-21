@@ -24,6 +24,8 @@ For a small live diagnostic, manually run **CI** with **maintenance_smoke**
 enabled. This uses the secret to test an intentionally failing disposable Rust
 fixture: the agent must call the check tool, edit the implementation and rerun
 tests successfully. It cannot publish repository changes.
+The diagnostic model defaults to 3.8 Flash; 3.6 Flash can be chosen explicitly
+when the 3.8 free quota is unavailable. This does not change the weekly model.
 
 The workflow uses the short-lived repository `GITHUB_TOKEN` for PRs and issues;
 it needs no personal access token. The inference job has read access to GitHub.

@@ -10,6 +10,14 @@ on:
         required: false
         default: false
         type: boolean
+      maintenance_smoke_model:
+        description: Free-tier model for the optional live diagnostic
+        required: false
+        default: gemini-3.8-flash
+        type: choice
+        options:
+          - gemini-3.8-flash
+          - gemini-3.6-flash
   workflow_call:
     inputs:
       ref:
@@ -38,6 +46,7 @@ jobs:
       - name: Exercise real inference, editing and iterative Rust checks
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SMOKE_MODEL: ${{ inputs.maintenance_smoke_model }}
         run: python3 scripts/sdk-maintenance.py smoke --artifacts "$RUNNER_TEMP/smoke"
   checks:
     if: ${{ !inputs.maintenance_smoke }}

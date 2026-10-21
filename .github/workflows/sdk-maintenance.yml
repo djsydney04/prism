@@ -62,12 +62,14 @@ jobs:
           rustup default stable
           rustup component add rustfmt clippy
           cargo fetch --manifest-path source/Cargo.toml --locked
+          sudo install -d -o root -g root -m 755 /etc/gemini-cli
+          sudo install -o root -g root -m 644 automation/.github/maintenance/gemini-settings.json /etc/gemini-cli/settings.json
       - name: Inspect, edit, test and repair using Gemini Flash
         id: agent
         working-directory: source
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_CLI_SYSTEM_SETTINGS_PATH: ${{ github.workspace }}/automation/.github/maintenance/gemini-settings.json
+          GEMINI_CLI_SYSTEM_SETTINGS_PATH: /etc/gemini-cli/settings.json
           MAINTENANCE_AUTOMATION_ROOT: ${{ github.workspace }}/automation
         run: |
           status=0

@@ -23,6 +23,10 @@ percent-encoding = "2"
 httpdate = "1"
 url = "2"
 tokio-tungstenite.workspace = true
+rustls.workspace = true
+# Enforce the patched verifier even with an older downstream dependency lockfile.
+rustls-webpki.workspace = true
+webpki-roots.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true

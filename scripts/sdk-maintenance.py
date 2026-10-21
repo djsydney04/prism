@@ -333,6 +333,9 @@ def smoke():
     """Verify real key authentication, editing, MCP testing and repair in a fixture."""
     if not os.environ.get("GEMINI_API_KEY"):
         raise ValueError("Add the GEMINI_API_KEY Actions secret before the live smoke test")
+    model = os.environ.get("SMOKE_MODEL") or "gemini-3.8-flash"
+    if model not in {"gemini-3.8-flash", "gemini-3.6-flash"}:
+        raise ValueError("Select a supported free-tier diagnostic model")
     automation = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix="prism-agent-smoke-") as temporary:
         source = Path(temporary)
@@ -344,12 +347,18 @@ def smoke():
             '#[test]\nfn contract() { assert_eq!(answer(), 2); }\n')
         run("cargo", "generate-lockfile", "--offline", cwd=source)
         settings = json.loads((automation / ".github/maintenance/gemini-settings.json").read_text())
+        settings["model"]["name"] = model
         settings["model"]["maxSessionTurns"] = 8
         settings_path = source / "system-settings.json"
         write_json(settings_path, settings)
+        # Current Gemini CLI intentionally ignores system settings under user-owned
+        # parents. Install the policy into this disposable Linux runner's /etc.
+        subprocess.run(["sudo", "install", "-d", "-o", "root", "-g", "root", "-m", "755", "/etc/gemini-cli"], check=True)
+        subprocess.run(["sudo", "install", "-o", "root", "-g", "root", "-m", "644",
+                        str(settings_path), "/etc/gemini-cli/settings.json"], check=True)
         environment = {key: value for key, value in os.environ.items()
                        if key not in {"GH_TOKEN", "GITHUB_TOKEN"}}
-        environment["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = str(settings_path)
+        environment["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = "/etc/gemini-cli/settings.json"
         environment["MAINTENANCE_AUTOMATION_ROOT"] = str(automation)
         prompt = ("This is a disposable Rust fixture. Inspect src/lib.rs, use check_rust "
                   "from prism_checks to observe the failing tests, fix answer() to satisfy "
@@ -358,7 +367,7 @@ def smoke():
                   "system-settings.json. Finish with a short factual result.")
         try:
             result = subprocess.run(
-                ["gemini", "--model", "gemini-3.8-flash", "--skip-trust", "--approval-mode", "yolo",
+                ["gemini", "--model", model, "--skip-trust", "--approval-mode", "yolo",
                  "--output-format", "stream-json", "--prompt", prompt],
                 cwd=source, env=environment, input="", capture_output=True, text=True, timeout=300, check=False)
         except subprocess.TimeoutExpired as error:
@@ -377,7 +386,7 @@ def smoke():
             raise ValueError("The agent changed the fixture's expected behavior")
         subprocess.run(["cargo", "test", "--locked", "--offline"], cwd=source,
                        env={key: value for key, value in environment.items() if key != "GEMINI_API_KEY"}, check=True)
-        print("Live Gemini Flash authentication, file editing and MCP test/repair loop passed.")
+        print(f"Live {model} authentication, file editing and MCP test/repair loop passed.")
 
 
 def main():

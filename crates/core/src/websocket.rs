@@ -5,10 +5,10 @@ use futures_util::{
     SinkExt, StreamExt,
 };
 use serde::{de::DeserializeOwned, Serialize};
-use std::fmt;
+use std::{fmt, sync::Arc};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
-    connect_async_with_config,
+    connect_async_tls_with_config,
     tungstenite::{
         self,
         client::IntoClientRequest,
@@ -16,8 +16,24 @@ use tokio_tungstenite::{
         protocol::WebSocketConfig,
         Message,
     },
-    MaybeTlsStream, WebSocketStream,
+    Connector, MaybeTlsStream, WebSocketStream,
 };
+
+fn bundled_roots() -> rustls::RootCertStore {
+    rustls::RootCertStore {
+        roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
+    }
+}
+
+fn bundled_tls_connector() -> Connector {
+    // Supply current bundled roots explicitly: tokio-tungstenite's webpki feature
+    // still selects the legacy 0.26 compatibility crate. The native-roots feature
+    // enables its Rustls connector, but platform roots are never loaded here.
+    let config = rustls::ClientConfig::builder()
+        .with_root_certificates(bundled_roots())
+        .with_no_client_auth();
+    Connector::Rustls(Arc::new(config))
+}
 
 /// Raw connection, for applications requiring the underlying stream/sink traits.
 /// Raw tungstenite diagnostics may contain payloads; avoid logging sensitive data.
@@ -188,9 +204,10 @@ impl Client {
             .max_frame_size(Some(limit))
             .write_buffer_size(0)
             .max_write_buffer_size(limit.saturating_add(1024));
+        let connector = (request.uri().scheme_str() == Some("wss")).then(bundled_tls_connector);
         let (socket, _) = tokio::time::timeout(
             self.config.timeout,
-            connect_async_with_config(request, Some(config), false),
+            connect_async_tls_with_config(request, Some(config), false, connector),
         )
         .await
         .map_err(|_| Error::Protocol("WebSocket handshake timed out".into()))?
@@ -278,5 +295,20 @@ impl WebSocketReceiver {
             }
         }
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod trust_tests {
+    #[test]
+    fn distrusted_emsign_root_is_not_a_websocket_trust_anchor() {
+        let roots = super::bundled_roots();
+        assert!(!roots.is_empty());
+        let distrusted = b"emSign ECC Root CA - G3";
+        assert!(roots.roots.iter().all(|anchor| !anchor
+            .subject
+            .as_ref()
+            .windows(distrusted.len())
+            .any(|window| window == distrusted)));
     }
 }
