@@ -916,7 +916,7 @@ checksum = "4a6394b9e965e73d0a289ee54f589087e2c676aedf60885baf52c76b771e4958"
 
 [[package]]
 name = "prism-ai-core"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "async-stream",
  "futures-core",
@@ -939,7 +939,7 @@ dependencies = [
 
 [[package]]
 name = "prism-gemini"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "futures-util",
  "prism-ai-core",
@@ -952,7 +952,7 @@ dependencies = [
 
 [[package]]
 name = "prism-groq"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "futures-util",
  "prism-ai-core",
@@ -964,7 +964,7 @@ dependencies = [
 
 [[package]]
 name = "prism-openai"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "base64 0.22.1",
  "futures-util",

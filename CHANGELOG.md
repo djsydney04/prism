@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.0](https://github.com/djsydney04/prism/compare/v0.2.2...v1.0.0) (2026-10-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* optimize required checks and update WebSocket TLS ([#5](https://github.com/djsydney04/prism/issues/5))
+
+### Features
+
+* configure weekly SDK maintenance with Groq GPT OSS 120B ([#4](https://github.com/djsydney04/prism/issues/4)) ([32a0721](https://github.com/djsydney04/prism/commit/32a0721da1b39d5b8b446ba45804765b09554a12))
+
+
+### Bug Fixes
+
+* **core:** yield SSE events incrementally to bound buffering ([#3](https://github.com/djsydney04/prism/issues/3)) ([b71577a](https://github.com/djsydney04/prism/commit/b71577a1a240a2237ab5a060253e88703d8689b0))
+
+
+### Continuous Integration
+
+* optimize required checks and update WebSocket TLS ([#5](https://github.com/djsydney04/prism/issues/5)) ([ce00181](https://github.com/djsydney04/prism/commit/ce001814f9226608036a068d22dcf750d4b37449))
+
 ## [0.2.2](https://github.com/djsydney04/prism/compare/v0.2.1...v0.2.2) (2026-10-16)
 
 

@@ -7,7 +7,7 @@ Groq SDK is wrapped or copied. Not affiliated with Groq.
 
 ```toml
 [dependencies]
-prism-groq = "0.2.2" # x-release-please-version
+prism-groq = "1.0.0" # x-release-please-version
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3"
 ```
