@@ -360,9 +360,9 @@ def smoke():
             result = subprocess.run(
                 ["gemini", "--model", "gemini-3.8-flash", "--skip-trust", "--approval-mode", "yolo",
                  "--output-format", "stream-json", "--prompt", prompt],
-                cwd=source, env=environment, capture_output=True, text=True, timeout=300, check=False)
+                cwd=source, env=environment, input="", capture_output=True, text=True, timeout=300, check=False)
         except subprocess.TimeoutExpired as error:
-            print(redacted_diagnostic(error.stderr or b"", environment))
+            print(redacted_diagnostic((error.stdout or b"") + (error.stderr or b""), environment))
             raise ValueError("The live agent exceeded five minutes; review free-tier availability or tool startup") from None
         if result.returncode:
             print(redacted_diagnostic(result.stdout + result.stderr, environment))
