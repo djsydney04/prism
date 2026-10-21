@@ -18,11 +18,17 @@ on:
         options:
           - google
           - groq
+          - openai
+          - anthropic
       maintenance_smoke_model:
         description: Model for the optional diagnostic (blank uses provider default)
         required: false
         default: ''
         type: string
+      maintenance_smoke_allow_paid:
+        description: Explicitly allow paid inference for this diagnostic
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       ref:
@@ -35,15 +41,18 @@ jobs:
   maintenance-smoke:
     if: github.event_name == 'workflow_dispatch' && inputs.maintenance_smoke && github.repository == 'djsydney04/prism'
     name: Maintenance agent live smoke test
-    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@5e050beb60a575e7a5e5d7aa20efa146df6feda1
+    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@610da64180574028e70273ce55b7495fb7908b41
     with:
-      maintainer_ref: 5e050beb60a575e7a5e5d7aa20efa146df6feda1
+      maintainer_ref: 610da64180574028e70273ce55b7495fb7908b41
       provider: ${{ inputs.maintenance_smoke_provider }}
       model: ${{ inputs.maintenance_smoke_model }}
+      allow_paid: ${{ inputs.maintenance_smoke_allow_paid }}
     secrets:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   checks:
     if: ${{ !inputs.maintenance_smoke }}
     name: Checks (${{ matrix.os }})
