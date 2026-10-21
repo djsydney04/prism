@@ -23,9 +23,13 @@ percent-encoding = "2"
 httpdate = "1"
 url = "2"
 tokio-tungstenite.workspace = true
+rustls.workspace = true
+webpki-roots.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true
+rcgen = { version = "0.14.7", default-features = false, features = ["ring"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 
 [lints]
 workspace = true

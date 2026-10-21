@@ -18,6 +18,11 @@ pub use reqwest::{self, Method};
 pub use resource::{encode_segment, Page, Resource};
 pub use serde_json::{self, Value};
 pub use sse::{EventStream, SseEvent};
-pub use tokio_tungstenite::{self, tungstenite};
+/// Low-level WebSocket API. Raw WSS connections require an explicit TLS connector;
+/// no root-loading feature is enabled on this reexport. Use [`Client::websocket`]
+/// for the SDK's bundled Mozilla roots, authentication, bounds and redaction.
+/// TLS features unified by other dependencies do not change the SDK trust store.
+pub use tokio_tungstenite;
+pub use tokio_tungstenite::tungstenite;
 pub use transport::{Client, RawResponse};
 pub use websocket::{WebSocketConnection, WebSocketReceiver, WebSocketSender, WebSocketSession};
