@@ -1,142 +1,193 @@
 name: CI
 on:
-  push:
-    branches: [main]
   pull_request:
+  merge_group:
   workflow_dispatch:
-    inputs:
-      maintenance_smoke:
-        description: Test Pi with the selected provider in a disposable Rust fixture
-        required: false
-        default: false
-        type: boolean
-      maintenance_smoke_provider:
-        description: Provider for the optional live diagnostic
-        required: false
-        default: google
-        type: choice
-        options:
-          - google
-          - groq
-          - openai
-          - anthropic
-      maintenance_smoke_model:
-        description: Model for the optional diagnostic (blank uses provider default)
-        required: false
-        default: ''
-        type: string
-      maintenance_smoke_allow_paid:
-        description: Explicitly allow paid inference for this diagnostic
-        type: boolean
-        default: false
+  schedule:
+    # Catch new advisories even when dependency files have not changed.
+    - cron: '0 16 * * 1'
   workflow_call:
     inputs:
       ref:
         required: false
         default: ''
         type: string
+      full:
+        description: Run every check for release validation, including historical refs
+        required: false
+        default: true
+        type: boolean
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.event_name }}-${{ inputs.ref || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch' }}
+env:
+  CARGO_TERM_COLOR: always
 jobs:
-  maintenance-smoke:
-    if: github.event_name == 'workflow_dispatch' && inputs.maintenance_smoke && github.repository == 'djsydney04/prism'
-    name: Maintenance agent live smoke test
-    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@610da64180574028e70273ce55b7495fb7908b41
-    with:
-      maintainer_ref: 610da64180574028e70273ce55b7495fb7908b41
-      provider: ${{ inputs.maintenance_smoke_provider }}
-      model: ${{ inputs.maintenance_smoke_model }}
-      allow_paid: ${{ inputs.maintenance_smoke_allow_paid }}
-    secrets:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  changes:
+    name: Select CI jobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      rust: ${{ steps.plan.outputs.rust }}
+      packaging: ${{ steps.plan.outputs.packaging }}
+      audit: ${{ steps.plan.outputs.audit }}
+      tooling: ${{ steps.plan.outputs.tooling }}
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Keep current CI tooling when a release caller selects historical SDK source.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: plan
+        env:
+          CI_FORCE_FULL: ${{ inputs.full || false }}
+        run: python3 scripts/ci.py plan
   checks:
-    if: ${{ !inputs.maintenance_smoke }}
-    name: Checks (${{ matrix.os }})
+    name: Rust checks
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --no-self-update
+      - run: rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo fmt --all --check
+      - name: Test and lint affected crates
+        env:
+          CI_PACKAGES: ${{ needs.changes.outputs.packages }}
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          args=()
+          for package in $CI_PACKAGES; do args+=(-p "$package"); done
+          cargo test "${args[@]}" --all-targets --locked
+          cargo test "${args[@]}" --doc --locked
+          cargo clippy "${args[@]}" --all-targets --locked -- -D warnings
+          cargo doc "${args[@]}" --no-deps --locked
+  platform-tests:
+    name: Tests (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
-      - run: rustup toolchain install stable --profile minimal
+      - run: rustup toolchain install stable --profile minimal --no-self-update
       - run: rustup default stable
-      - run: rustup component add rustfmt clippy
-      - run: cargo fmt --all --check
-      - run: cargo test --workspace --all-targets --locked
-      - run: cargo test --workspace --doc --locked
-      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo doc --workspace --no-deps --locked
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Test affected crates
         env:
-          RUSTDOCFLAGS: -D warnings
+          CI_PACKAGES: ${{ needs.changes.outputs.packages }}
+        run: |
+          args=()
+          for package in $CI_PACKAGES; do args+=(-p "$package"); done
+          cargo test "${args[@]}" --all-targets --locked
   msrv:
-    if: ${{ !inputs.maintenance_smoke }}
     name: Rust 1.88 minimum
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
-      - run: rustup toolchain install 1.88.0 --profile minimal
-      - run: cargo +1.88.0 check --workspace --all-targets --locked
+      - run: rustup toolchain install 1.88.0 --profile minimal --no-self-update
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Check affected crates
+        env:
+          CI_PACKAGES: ${{ needs.changes.outputs.packages }}
+        run: |
+          args=()
+          for package in $CI_PACKAGES; do args+=(-p "$package"); done
+          cargo +1.88.0 check "${args[@]}" --all-targets --locked
   package:
-    if: ${{ !inputs.maintenance_smoke }}
     name: Verify crate packages
+    needs: changes
+    if: needs.changes.outputs.packaging == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
-      - run: rustup toolchain install stable --profile minimal
+      - run: rustup toolchain install stable --profile minimal --no-self-update
       - run: rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          # Package verification deliberately uses a fresh target/registry identity.
+          cache-targets: false
       - run: python3 scripts/verify-packages.py
   audit:
-    if: ${{ !inputs.maintenance_smoke }}
     name: Dependency audit
+    needs: changes
+    if: needs.changes.outputs.audit == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
-      - run: rustup toolchain install stable --profile minimal
-      - run: rustup default stable
-      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: audit-cache
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}-${{ runner.arch }}-0.22.2
+      - if: steps.audit-cache.outputs.cache-hit != 'true'
+        run: cargo install cargo-audit --version 0.22.2 --locked
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: steps.audit-cache.outputs.cache-hit != 'true'
+        with:
+          # Save the executable before the audit, including when advisories fail CI.
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}-${{ runner.arch }}-0.22.2
+      # Do not cache advisory results: this fetches the current advisory database.
       - run: cargo audit --deny warnings
   release-tooling:
-    if: ${{ !inputs.maintenance_smoke }}
-    name: Release tooling tests
+    name: CI tooling tests
+    needs: changes
+    if: needs.changes.outputs.tooling == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          # Historical SDK tags may predate these tests; validate the publisher itself.
           ref: ${{ github.sha }}
           persist-credentials: false
       - run: python3 -m unittest discover -s scripts/tests -v
   required:
     name: CI required
-    if: ${{ always() && !inputs.maintenance_smoke }}
-    needs: [checks, msrv, package, audit, release-tooling]
+    if: ${{ always() }}
+    needs: [changes, checks, platform-tests, msrv, package, audit, release-tooling]
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - name: Require every CI job to pass
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require every applicable job to pass
         env:
-          RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 - <<'PY'
-          import json, os
-          jobs = json.loads(os.environ["RESULTS"])
-          failed = [name for name, job in jobs.items() if job["result"] != "success"]
-          if failed:
-              raise SystemExit("Required CI jobs did not pass: " + ", ".join(failed))
-          PY
+          CI_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci.py verify

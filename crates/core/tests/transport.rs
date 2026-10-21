@@ -301,6 +301,40 @@ async fn stream_done_and_content_type_validation() {
 }
 
 #[tokio::test]
+async fn sse_and_multipart_streams_stop_at_done_before_invalid_tails() {
+    let server = MockServer::start().await;
+    let sdk = Client::new(Config::new(server.uri(), "key").max_event_bytes(128)).unwrap();
+    for tail in [
+        b"data: \xff\n\n".to_vec(),
+        format!("data: {}\n\n", "x".repeat(128)).into_bytes(),
+    ] {
+        for multipart in [false, true] {
+            server.reset().await;
+            let mut body = b"id: inherited\n\ndata: first\n\ndata: [DONE]\n\n".to_vec();
+            body.extend_from_slice(&tail);
+            Mock::given(method("POST"))
+                .and(path("/events"))
+                .respond_with(ResponseTemplate::new(200).set_body_raw(body, "text/event-stream"))
+                .expect(1)
+                .mount(&server)
+                .await;
+            let mut events = if multipart {
+                sdk.multipart_stream(Method::POST, "events", &[], reqwest::multipart::Form::new())
+                    .await
+                    .unwrap()
+            } else {
+                sdk.stream(Method::POST, "events", &[], None).await.unwrap()
+            };
+            let first = events.next().await.unwrap().unwrap();
+            assert_eq!(first.id.as_deref(), Some("inherited"));
+            assert_eq!(first.data, "first");
+            assert!(events.next().await.is_none());
+            server.verify().await;
+        }
+    }
+}
+
+#[tokio::test]
 async fn multipart_and_binary_preserve_bytes() {
     let s = MockServer::start().await;
     let c = client(&s);

@@ -63,8 +63,8 @@ for direct container usage. Docker does not create a weekly schedule by itself.
 ## Activate, review and get notifications
 
 Enable **Allow GitHub Actions to create and approve pull requests** in Prism's
-Actions settings. Merge the shared maintainer feature PR, then merge Prism's setup
-PR to activate the schedule. Run **Weekly SDK maintenance** manually once and
+Actions settings. The shared maintainer feature is merged. Merge Prism's setup PR to activate the
+schedule. Run **Weekly SDK maintenance** manually once and
 review the result. The duplicate local Codex schedule retires on its next check
 after the cloud caller is merged.
 
@@ -92,8 +92,8 @@ key or paid fallback. An unbilled Google project or Groq free-plan organization
 enforces free-only inference; billed accounts can incur charges. Another key in
 the same project/organization shares its quota.
 
-For a live repair diagnostic, manually run **CI** with `maintenance_smoke`, choose
-a provider/model, and explicitly enable paid usage if appropriate. It repairs a
+For a live repair diagnostic, manually run **Maintenance diagnostic**, choose a
+provider/model, and explicitly enable paid usage if appropriate. It repairs a
 disposable failing Rust fixture, reruns tests and checks an independent assertion.
 It cannot publish source changes. New OpenAI/Anthropic SDK routing is covered by
 simulated transport tests; live paid tests require their corresponding keys.

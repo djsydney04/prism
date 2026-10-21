@@ -19,22 +19,6 @@ use tokio_tungstenite::{
     Connector, MaybeTlsStream, WebSocketStream,
 };
 
-fn bundled_roots() -> rustls::RootCertStore {
-    rustls::RootCertStore {
-        roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
-    }
-}
-
-fn bundled_tls_connector() -> Connector {
-    // Supply current bundled roots explicitly: tokio-tungstenite's webpki feature
-    // still selects the legacy 0.26 compatibility crate. The native-roots feature
-    // enables its Rustls connector, but platform roots are never loaded here.
-    let config = rustls::ClientConfig::builder()
-        .with_root_certificates(bundled_roots())
-        .with_no_client_auth();
-    Connector::Rustls(Arc::new(config))
-}
-
 /// Raw connection, for applications requiring the underlying stream/sink traits.
 /// Raw tungstenite diagnostics may contain payloads; avoid logging sensitive data.
 pub type WebSocketConnection = WebSocketStream<MaybeTlsStream<TcpStream>>;
@@ -125,6 +109,20 @@ fn check_message(message: &Message, limit: usize) -> Result<()> {
     }
 }
 
+fn tls_connector(roots: rustls::RootCertStore) -> Result<Connector> {
+    // Match reqwest: honor an installed provider, otherwise use Ring. Avoid
+    // relying on feature unification to choose or install a global provider.
+    let provider = rustls::crypto::CryptoProvider::get_default()
+        .cloned()
+        .unwrap_or_else(|| Arc::new(rustls::crypto::ring::default_provider()));
+    let config = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|_| Error::Config("invalid WebSocket TLS configuration".into()))?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    Ok(Connector::Rustls(Arc::new(config)))
+}
+
 impl Client {
     /// Connect using the configured authentication header. HTTPS becomes WSS;
     /// loopback HTTP becomes WS. Cross-origin and redirect handshakes are rejected.
@@ -204,7 +202,13 @@ impl Client {
             .max_frame_size(Some(limit))
             .write_buffer_size(0)
             .max_write_buffer_size(limit.saturating_add(1024));
-        let connector = (request.uri().scheme_str() == Some("wss")).then(bundled_tls_connector);
+        let connector = if scheme == "wss" {
+            Some(tls_connector(rustls::RootCertStore::from_iter(
+                webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+            ))?)
+        } else {
+            None
+        };
         let (socket, _) = tokio::time::timeout(
             self.config.timeout,
             connect_async_tls_with_config(request, Some(config), false, connector),
@@ -299,16 +303,162 @@ impl WebSocketReceiver {
 }
 
 #[cfg(test)]
-mod trust_tests {
+mod tests {
+    use super::*;
+    use crate::Config;
+    use rcgen::{CertificateParams, KeyPair};
+    use rustls::{
+        pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
+        CertificateError, ClientConnection, RootCertStore, ServerConfig, ServerConnection,
+    };
+    use std::time::Duration;
+
+    fn identity(expired: bool) -> (CertificateDer<'static>, PrivateKeyDer<'static>) {
+        let key = KeyPair::generate().unwrap();
+        let mut params =
+            CertificateParams::new(vec!["localhost".into(), "127.0.0.1".into()]).unwrap();
+        if expired {
+            params.not_before = rcgen::date_time_ymd(1990, 1, 1);
+            params.not_after = rcgen::date_time_ymd(2000, 1, 1);
+        }
+        let cert = params.self_signed(&key).unwrap();
+        (
+            cert.der().clone(),
+            PrivatePkcs8KeyDer::from(key.serialize_der()).into(),
+        )
+    }
+
+    fn server_config(
+        cert: CertificateDer<'static>,
+        key: PrivateKeyDer<'static>,
+        version: &'static rustls::SupportedProtocolVersion,
+    ) -> ServerConfig {
+        ServerConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
+            .with_protocol_versions(&[version])
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(vec![cert], key)
+            .unwrap()
+    }
+
+    // Exercise the actual connector's verifier without public-network servers
+    // or a test-only trust override in the SDK's connection path.
+    fn handshake(
+        connector: Connector,
+        server: ServerConfig,
+        hostname: &'static str,
+    ) -> std::result::Result<(), rustls::Error> {
+        let Connector::Rustls(config) = connector else {
+            panic!("expected a Rustls connector");
+        };
+        let mut client =
+            ClientConnection::new(config, ServerName::try_from(hostname).unwrap()).unwrap();
+        let mut server = ServerConnection::new(Arc::new(server)).unwrap();
+        for _ in 0..16 {
+            let mut bytes = Vec::new();
+            client.write_tls(&mut bytes).unwrap();
+            if !bytes.is_empty() {
+                server.read_tls(&mut bytes.as_slice()).unwrap();
+                server.process_new_packets()?;
+            }
+            bytes.clear();
+            server.write_tls(&mut bytes).unwrap();
+            if !bytes.is_empty() {
+                client.read_tls(&mut bytes.as_slice()).unwrap();
+                client.process_new_packets()?;
+            }
+            if !client.is_handshaking() && !server.is_handshaking() {
+                return Ok(());
+            }
+        }
+        panic!("TLS handshake did not complete");
+    }
+
     #[test]
-    fn distrusted_emsign_root_is_not_a_websocket_trust_anchor() {
-        let roots = super::bundled_roots();
-        assert!(!roots.is_empty());
-        let distrusted = b"emSign ECC Root CA - G3";
-        assert!(roots.roots.iter().all(|anchor| !anchor
-            .subject
-            .as_ref()
-            .windows(distrusted.len())
-            .any(|window| window == distrusted)));
+    fn trusted_certificate_supports_tls12_and_tls13() {
+        for version in [&rustls::version::TLS12, &rustls::version::TLS13] {
+            let (cert, key) = identity(false);
+            let mut roots = RootCertStore::empty();
+            roots.add(cert.clone()).unwrap();
+            handshake(
+                tls_connector(roots).unwrap(),
+                server_config(cert, key, version),
+                "localhost",
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn trusted_certificate_with_wrong_hostname_is_rejected() {
+        let (cert, key) = identity(false);
+        let mut roots = RootCertStore::empty();
+        roots.add(cert.clone()).unwrap();
+        let error = handshake(
+            tls_connector(roots).unwrap(),
+            server_config(cert, key, &rustls::version::TLS13),
+            "wrong.example",
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            rustls::Error::InvalidCertificate(
+                CertificateError::NotValidForName | CertificateError::NotValidForNameContext { .. }
+            )
+        ));
+    }
+
+    #[test]
+    fn trusted_but_expired_certificate_is_rejected() {
+        let (cert, key) = identity(true);
+        let mut roots = RootCertStore::empty();
+        roots.add(cert.clone()).unwrap();
+        let error = handshake(
+            tls_connector(roots).unwrap(),
+            server_config(cert, key, &rustls::version::TLS13),
+            "localhost",
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            rustls::Error::InvalidCertificate(
+                CertificateError::Expired | CertificateError::ExpiredContext { .. }
+            )
+        ));
+    }
+
+    #[tokio::test]
+    async fn sdk_rejects_untrusted_tls_before_header_or_query_authentication() {
+        for query_auth in [false, true] {
+            let (cert, key) = identity(false);
+            let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_config(
+                cert,
+                key,
+                &rustls::version::TLS13,
+            )));
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let origin = format!("https://{}/", listener.local_addr().unwrap());
+            let server = tokio::spawn(async move {
+                tokio::time::timeout(Duration::from_secs(5), async move {
+                    let (tcp, _) = listener.accept().await.unwrap();
+                    // TLS must fail before the server can receive an HTTP
+                    // upgrade request containing either form of credentials.
+                    assert!(acceptor.accept(tcp).await.is_err());
+                })
+                .await
+                .unwrap();
+            });
+            let client = Client::new(Config::new(origin, "tls-test-secret")).unwrap();
+            let result = if query_auth {
+                client.websocket_with_key_query("/ws", &[], "key").await
+            } else {
+                client.websocket("/ws", &[]).await
+            };
+            let error = result.unwrap_err();
+            assert!(matches!(error, Error::Protocol(_)));
+            assert_eq!(error.to_string(), "protocol error: WebSocket I/O failed");
+            assert!(!format!("{error:?}").contains("tls-test-secret"));
+            server.await.unwrap();
+        }
     }
 }
