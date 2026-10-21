@@ -114,3 +114,20 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
       - run: python3 -m unittest discover -s scripts/tests -v
+  required:
+    name: CI required
+    if: ${{ always() && !inputs.maintenance_smoke }}
+    needs: [checks, msrv, package, audit, release-tooling]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every CI job to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          jobs = json.loads(os.environ["RESULTS"])
+          failed = [name for name, job in jobs.items() if job["result"] != "success"]
+          if failed:
+              raise SystemExit("Required CI jobs did not pass: " + ", ".join(failed))
+          PY
