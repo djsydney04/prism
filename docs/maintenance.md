@@ -47,8 +47,8 @@ agent:
 
 For Anthropic, use `provider: anthropic`, for example with
 `model: claude-sonnet-4-6`. Both paid providers require explicit `allow_paid: true`.
-The native OpenAI Responses and Anthropic Messages SDK adapters run through Pi;
-this does not add a new Rust SDK to Prism.
+The maintainer uses native Rust adapters for OpenAI Responses and Anthropic
+Messages; this does not add a new Rust SDK to Prism.
 
 Add the key in **Settings → Secrets and variables → Actions → Secrets**. Keep
 keys out of YAML, Dockerfiles, workflow inputs and chat. Replacing a named secret
@@ -80,8 +80,8 @@ for direct container usage. Docker does not create a weekly schedule by itself.
 ## Activate, review and get notifications
 
 Enable **Allow GitHub Actions to create and approve pull requests** in Prism's
-Actions settings. The shared maintainer feature is merged. Merge Prism's setup PR to activate the
-schedule. Run **Weekly SDK maintenance** manually once and
+Actions settings. The cloud schedule is enabled on the default branch.
+Run **Weekly SDK maintenance** manually to
 review the result. The duplicate local Codex schedule retires on its next check
 after the cloud caller is merged.
 
@@ -110,7 +110,12 @@ enforces free-only inference; billed accounts can incur charges. Another key in
 the same project/organization shares its quota.
 
 For a live repair diagnostic, manually run **Maintenance diagnostic**, choose a
-provider/model, and explicitly enable paid usage if appropriate. It repairs a
-disposable failing Rust fixture, reruns tests and checks an independent assertion.
-It cannot publish source changes. New OpenAI/Anthropic SDK routing is covered by
+provider/model, and explicitly enable paid usage if appropriate. The default
+`repair` scope repairs a disposable failing Rust fixture, reruns tests and checks
+an independent assertion. The `repository` scope reads the actual SDK and its
+configured official documentation, and retains a report and proposed patch as
+the `sdk-maintenance-diagnostic` artifact. Both scopes run with read-only GitHub
+permissions and cannot publish source changes. Repository diagnostics verify
+proposal generation; the weekly workflow independently validates changed patches
+before publishing a PR. New OpenAI/Anthropic SDK routing is covered by
 simulated transport tests; live paid tests require their corresponding keys.
