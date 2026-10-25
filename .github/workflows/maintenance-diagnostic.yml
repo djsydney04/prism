@@ -10,10 +10,10 @@ on:
       provider:
         description: Model provider for the diagnostic
         type: choice
-        default: groq
-        options: [groq, google, openai, anthropic]
+        default: google
+        options: [google, groq, openai, anthropic]
       model:
-        description: Optional model ID; Groq defaults to openai/gpt-oss-120b
+        description: Optional model ID; Google defaults to gemini-3.5-flash-lite
         type: string
         default: ''
       allow_paid:
@@ -29,7 +29,7 @@ jobs:
     with:
       maintainer_ref: 79f4b79d907725967d10c00eec12a18dad482f19
       provider: ${{ inputs.provider }}
-      model: ${{ inputs.model || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
+      model: ${{ inputs.model || (inputs.provider == 'google' && 'gemini-3.5-flash-lite') || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
       allow_paid: ${{ inputs.allow_paid }}
     secrets:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -59,7 +59,7 @@ jobs:
       - name: Inspect the SDK and retain a proposal without GitHub writes
         env:
           MAINTENANCE_PROVIDER: ${{ inputs.provider }}
-          MAINTENANCE_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
+          MAINTENANCE_MODEL: ${{ inputs.model || (inputs.provider == 'google' && 'gemini-3.5-flash-lite') || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
           MAINTENANCE_ALLOW_PAID: ${{ inputs.allow_paid && 'true' || '' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

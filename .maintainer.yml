@@ -4,8 +4,8 @@
 version: 1
 name: Prism SDK maintenance
 agent:
-  provider: groq
-  model: openai/gpt-oss-120b
+  provider: google
+  model: gemini-3.5-flash-lite
   allow_paid: false
   max_requests: 16
 sources:
