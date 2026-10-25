@@ -85,6 +85,11 @@ Run **Weekly SDK maintenance** manually to
 review the result. The duplicate local Codex schedule retires on its next check
 after the cloud caller is merged.
 
+Each pass completes one focused assessment or compatible fix, prioritizing
+OpenAI. It names the area checked and any remaining work; a successful scoped
+assessment does not claim that every SDK endpoint was audited. The 16-request
+limit includes transcript summaries, and the agent sees its remaining budget.
+
 The agent reads current official docs and existing maintenance PR feedback, then
 uses explicit file/reference tools and bounded offline Rust checks. It loads no
 repository plugins, general shell commands or subagents. Provider credentials
