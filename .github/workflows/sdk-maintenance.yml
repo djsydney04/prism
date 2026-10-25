@@ -27,9 +27,9 @@ jobs:
       pull-requests: write
       issues: write
       actions: write
-    uses: djsydney04/repo_maintainer/.github/workflows/maintain.yml@7404480a27f5cc6fc2cf8cd3414beefc1e11807b
+    uses: djsydney04/repo_maintainer/.github/workflows/maintain.yml@79f4b79d907725967d10c00eec12a18dad482f19
     with:
-      maintainer_ref: 7404480a27f5cc6fc2cf8cd3414beefc1e11807b
+      maintainer_ref: 79f4b79d907725967d10c00eec12a18dad482f19
       owner: djsydney04
       config_path: .maintainer.yml
       allow_paid: ${{ inputs.allow_paid }}
