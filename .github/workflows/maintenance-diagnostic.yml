@@ -25,9 +25,9 @@ permissions:
 jobs:
   repair:
     if: inputs.scope != 'repository'
-    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@5c30e1f56c2641423343912100edc040a1ce9eae
+    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@e324050ca30a28bdbc9a42d7497572f11e0a704e
     with:
-      maintainer_ref: 5c30e1f56c2641423343912100edc040a1ce9eae
+      maintainer_ref: e324050ca30a28bdbc9a42d7497572f11e0a704e
       provider: ${{ inputs.provider }}
       model: ${{ inputs.model || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
       allow_paid: ${{ inputs.allow_paid }}
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: djsydney04/repo_maintainer
-          ref: 5c30e1f56c2641423343912100edc040a1ce9eae
+          ref: e324050ca30a28bdbc9a42d7497572f11e0a704e
           persist-credentials: false
           path: automation
       - name: Build the pinned maintainer and install Rust check tools
