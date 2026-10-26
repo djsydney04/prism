@@ -2,13 +2,18 @@ name: Maintenance diagnostic
 on:
   workflow_dispatch:
     inputs:
-      provider:
-        description: Model provider for the disposable repair test
+      scope:
+        description: Repair a disposable fixture or inspect the real SDK without publishing
         type: choice
-        default: groq
-        options: [groq, google, openai, anthropic]
+        default: repair
+        options: [repair, repository]
+      provider:
+        description: Model provider for the diagnostic
+        type: choice
+        default: google
+        options: [google, groq, openai, anthropic]
       model:
-        description: Optional model ID; Groq defaults to openai/gpt-oss-120b
+        description: Optional model ID; Google defaults to gemini-3.5-flash-lite
         type: string
         default: ''
       allow_paid:
@@ -19,11 +24,12 @@ permissions:
   contents: read
 jobs:
   repair:
-    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@610da64180574028e70273ce55b7495fb7908b41
+    if: inputs.scope != 'repository'
+    uses: djsydney04/repo_maintainer/.github/workflows/smoke.yml@79f4b79d907725967d10c00eec12a18dad482f19
     with:
-      maintainer_ref: 610da64180574028e70273ce55b7495fb7908b41
+      maintainer_ref: 79f4b79d907725967d10c00eec12a18dad482f19
       provider: ${{ inputs.provider }}
-      model: ${{ inputs.model || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
+      model: ${{ inputs.model || (inputs.provider == 'google' && 'gemini-3.5-flash-lite') || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
       allow_paid: ${{ inputs.allow_paid }}
     secrets:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -31,3 +37,47 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}
+  repository:
+    if: inputs.scope == 'repository'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: consumer
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: djsydney04/repo_maintainer
+          ref: 79f4b79d907725967d10c00eec12a18dad482f19
+          persist-credentials: false
+          path: automation
+      - name: Build the pinned maintainer and install Rust check tools
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+          cargo +stable build --release --locked --manifest-path automation/Cargo.toml
+      - name: Inspect the SDK and retain a proposal without GitHub writes
+        env:
+          MAINTENANCE_PROVIDER: ${{ inputs.provider }}
+          MAINTENANCE_MODEL: ${{ inputs.model || (inputs.provider == 'google' && 'gemini-3.5-flash-lite') || (inputs.provider == 'groq' && 'openai/gpt-oss-120b') || '' }}
+          MAINTENANCE_ALLOW_PAID: ${{ inputs.allow_paid && 'true' || '' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SDK_MAINTENANCE_API_KEY: ${{ secrets.SDK_MAINTENANCE_API_KEY }}
+        run: >-
+          automation/target/release/repo-maintainer run
+          --repo consumer --config .maintainer.yml --output "$RUNNER_TEMP/proposal"
+      - name: Retain completed or blocked diagnostic proposals
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sdk-maintenance-diagnostic
+          path: |
+            ${{ runner.temp }}/proposal/request.json
+            ${{ runner.temp }}/proposal/report.json
+            ${{ runner.temp }}/proposal/proposal.patch
+            ${{ runner.temp }}/proposal/agent-result.json
+          if-no-files-found: warn
+          retention-days: 30

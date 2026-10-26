@@ -18,22 +18,24 @@ and pins both the reusable workflow and implementation to the same exact commit.
 | `openai` | `gpt-5.4` | `OPENAI_API_KEY` |
 | `anthropic` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` |
 
-Prism explicitly pins Groq with
-[GPT OSS 120B](https://console.groq.com/docs/model/openai/gpt-oss-120b) in its YAML
-agent section:
+Prism explicitly pins Google with `gemini-3.5-flash-lite` in its YAML
+agent section. This pair completed the live OpenAI SDK assessment with passing
+offline Rust contract tests:
 
 ```yaml
 agent:
-  provider: groq
-  model: openai/gpt-oss-120b
+  provider: google
+  model: gemini-3.5-flash-lite
   allow_paid: false
   max_requests: 16
 ```
 
 Scheduled runs and manual runs without overrides use this exact pair and the
-`GROQ_API_KEY` secret. The Groq repair diagnostic also pins
-`openai/gpt-oss-120b` when its model input is blank. Another provider or model
-requires an explicit configuration change or manual override.
+`GEMINI_API_KEY` secret. The diagnostic defaults to the same provider/model.
+Selecting Groq with a blank diagnostic model uses `openai/gpt-oss-120b`.
+Another provider or model requires an explicit configuration change or manual
+override. The provider defaults in the table apply only when `agent.model` is
+omitted; Prism keeps the verified model explicit.
 
 To use OpenAI, change the YAML agent section:
 
@@ -47,8 +49,8 @@ agent:
 
 For Anthropic, use `provider: anthropic`, for example with
 `model: claude-sonnet-4-6`. Both paid providers require explicit `allow_paid: true`.
-The native OpenAI Responses and Anthropic Messages SDK adapters run through Pi;
-this does not add a new Rust SDK to Prism.
+The maintainer uses native Rust adapters for OpenAI Responses and Anthropic
+Messages; this does not add a new Rust SDK to Prism.
 
 Add the key in **Settings → Secrets and variables → Actions → Secrets**. Keep
 keys out of YAML, Dockerfiles, workflow inputs and chat. Replacing a named secret
@@ -80,10 +82,15 @@ for direct container usage. Docker does not create a weekly schedule by itself.
 ## Activate, review and get notifications
 
 Enable **Allow GitHub Actions to create and approve pull requests** in Prism's
-Actions settings. The shared maintainer feature is merged. Merge Prism's setup PR to activate the
-schedule. Run **Weekly SDK maintenance** manually once and
+Actions settings. The cloud schedule is enabled on the default branch.
+Run **Weekly SDK maintenance** manually to
 review the result. The duplicate local Codex schedule retires on its next check
 after the cloud caller is merged.
+
+Each pass completes one focused assessment or compatible fix, prioritizing
+OpenAI. It names the area checked and any remaining work; a successful scoped
+assessment does not claim that every SDK endpoint was audited. The 16-request
+limit includes transcript summaries, and the agent sees its remaining budget.
 
 The agent reads current official docs and existing maintenance PR feedback, then
 uses explicit file/reference tools and bounded offline Rust checks. It loads no
@@ -110,7 +117,12 @@ enforces free-only inference; billed accounts can incur charges. Another key in
 the same project/organization shares its quota.
 
 For a live repair diagnostic, manually run **Maintenance diagnostic**, choose a
-provider/model, and explicitly enable paid usage if appropriate. It repairs a
-disposable failing Rust fixture, reruns tests and checks an independent assertion.
-It cannot publish source changes. New OpenAI/Anthropic SDK routing is covered by
+provider/model, and explicitly enable paid usage if appropriate. The default
+`repair` scope repairs a disposable failing Rust fixture, reruns tests and checks
+an independent assertion. The `repository` scope reads the actual SDK and its
+configured official documentation, and retains a report and proposed patch as
+the `sdk-maintenance-diagnostic` artifact. Both scopes run with read-only GitHub
+permissions and cannot publish source changes. Repository diagnostics verify
+proposal generation; the weekly workflow independently validates changed patches
+before publishing a PR. New OpenAI/Anthropic SDK routing is covered by
 simulated transport tests; live paid tests require their corresponding keys.
