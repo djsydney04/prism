@@ -1,0 +1,20 @@
+name: Maintenance completion
+on:
+  workflow_run:
+    workflows: [Weekly SDK maintenance]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Existing maintenance run ID to diagnose
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  observe:
+    uses: djsydney04/repo_maintainer/.github/workflows/observe.yml@e8f9f582d73692db5f11eb5f7bd3013a85b7cc70
+    with:
+      maintainer_ref: e8f9f582d73692db5f11eb5f7bd3013a85b7cc70
+      run_id: ${{ inputs.run_id || format('{0}', github.event.workflow_run.id) }}

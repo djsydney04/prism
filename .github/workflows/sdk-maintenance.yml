@@ -5,6 +5,10 @@ on:
       timezone: America/Los_Angeles
   workflow_dispatch:
     inputs:
+      dry_run:
+        description: Assess and validate without publishing PRs or notifications
+        type: boolean
+        default: false
       provider:
         description: Optional provider override (google, groq, openai or anthropic)
         type: string
@@ -21,18 +25,20 @@ permissions:
   contents: read
 jobs:
   maintain:
-    if: github.repository == 'djsydney04/prism' && github.ref_name == github.event.repository.default_branch
+    if: github.repository == 'djsydney04/prism' && (github.ref_name == github.event.repository.default_branch || (github.event_name == 'workflow_dispatch' && inputs.dry_run))
     permissions:
       contents: write
       pull-requests: write
       issues: write
       actions: write
-    uses: djsydney04/repo_maintainer/.github/workflows/maintain.yml@79f4b79d907725967d10c00eec12a18dad482f19
+    uses: djsydney04/repo_maintainer/.github/workflows/maintain.yml@e8f9f582d73692db5f11eb5f7bd3013a85b7cc70
     with:
-      maintainer_ref: 79f4b79d907725967d10c00eec12a18dad482f19
+      maintainer_ref: e8f9f582d73692db5f11eb5f7bd3013a85b7cc70
       owner: djsydney04
       config_path: .maintainer.yml
-      allow_paid: ${{ inputs.allow_paid }}
+      # Scheduled events have no dispatch inputs; pass a real boolean.
+      allow_paid: ${{ inputs.allow_paid == true }}
+      dry_run: ${{ inputs.dry_run == true }}
       provider: ${{ inputs.provider }}
       model: ${{ inputs.model }}
     secrets:
