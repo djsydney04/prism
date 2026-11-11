@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/djsydney04/prism/compare/v1.0.0...v1.0.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* restore scheduled SDK maintenance and add failure diagnostics ([#9](https://github.com/djsydney04/prism/issues/9)) ([969ce72](https://github.com/djsydney04/prism/commit/969ce72608898ca0c624064683aced61cbcbf2f2))
+
 ## [1.0.0](https://github.com/djsydney04/prism/compare/v0.2.2...v1.0.0) (2026-10-21)
 
 
